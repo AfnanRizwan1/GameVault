@@ -37,6 +37,7 @@ export default function GameDetail() {
   const [reviewText, setReviewText] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
   const [submitted, setSubmitted] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
   const [localReviews, setLocalReviews] = useState(mockReviews.filter(r => r.gameId === parseInt(id)));
 
   if (!game) {
@@ -54,6 +55,7 @@ export default function GameDetail() {
   const avgRating = localReviews.length > 0
     ? (localReviews.reduce((s, r) => s + r.rating, 0) / localReviews.length).toFixed(1)
     : game.rating.toFixed(1);
+  const screenshotImages = [1, 2, 3].map(n => `/images/screenshots/${game.id}-${n}.jpg`);
 
   const handleAddToCart = () => { if (user) addToCart(game); };
 
@@ -108,12 +110,11 @@ export default function GameDetail() {
             <h3>About This Game</h3>
             <p className="gd-description">{game.description}</p>
             <div className="gd-screenshots">
-              {[1,2,3].map(n => (
-                <div key={n} className="gd-screenshot" style={{ background: `linear-gradient(${n * 45}deg, ${colors[0]}44, ${colors[1]}33)` }}>
-                  <span style={{ fontFamily: 'Orbitron', fontSize: '1.5rem', color: 'rgba(255,255,255,0.15)', fontWeight: 900 }}>
-                    SS{n}
-                  </span>
-                </div>
+              {screenshotImages.map((src, index) => (
+                <button key={src} type="button" className="gd-screenshot" onClick={() => setPreviewImage(src)}>
+                  <img src={src} alt={`${game.title} gameplay screenshot ${index + 1}`} className="gd-screenshot-img" />
+                  <span className="gd-screenshot-zoom"><Icon name="zoom_in" size={18} /></span>
+                </button>
               ))}
             </div>
           </div>
@@ -237,6 +238,17 @@ export default function GameDetail() {
           </div>
         </div>
       </div>
+
+      {previewImage && (
+        <div className="gd-preview-overlay" onClick={() => setPreviewImage(null)}>
+          <div className="gd-preview-dialog" onClick={e => e.stopPropagation()}>
+            <button type="button" className="gd-preview-close" onClick={() => setPreviewImage(null)} aria-label="Close preview">
+              <Icon name="close" size={20} />
+            </button>
+            <img src={previewImage} alt={`${game.title} enlarged gameplay preview`} className="gd-preview-img" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

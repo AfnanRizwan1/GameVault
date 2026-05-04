@@ -101,7 +101,11 @@ export default function Navbar({ sidebarOpen, setSidebarOpen }) {
                     onClick={() => { setShowSearch(false); setSearchQuery(''); }}
                   >
                     <div className="search-result-cover" style={{ background: `linear-gradient(135deg, ${getGenreColor(g.genre)})` }}>
-                      <span style={{ fontSize: 10, color: '#fff', fontWeight: 700 }}>{g.genre[0]}</span>
+                      {g.image ? (
+                        <img src={g.image} alt={g.title} className="search-result-cover-img" />
+                      ) : (
+                        <span style={{ fontSize: 10, color: '#fff', fontWeight: 700 }}>{g.genre[0]}</span>
+                      )}
                     </div>
                     <div>
                       <div style={{ fontWeight: 600, color: 'var(--text-bright)', fontSize: 14 }}>{g.title}</div>
@@ -145,7 +149,7 @@ export default function Navbar({ sidebarOpen, setSidebarOpen }) {
                   {!isAdmin && <Link to="/library" className="dropdown-item" onClick={() => setUserMenuOpen(false)}><Icon name="library_books" size={16} /> My Library</Link>}
                   {!isAdmin && <Link to="/profile" className="dropdown-item" onClick={() => setUserMenuOpen(false)}><Icon name="person" size={16} /> Profile</Link>}
                   <div className="dropdown-divider" />
-                  <button className="dropdown-item text-red" onClick={() => { logout(); navigate('/'); setUserMenuOpen(false); }}>
+                  <button className="dropdown-item dropdown-item-danger" onClick={() => { logout(); navigate('/'); setUserMenuOpen(false); }}>
                     <Icon name="logout" size={16} /> Sign Out
                   </button>
                 </div>

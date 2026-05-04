@@ -38,7 +38,11 @@ export default function Cart() {
             return (
               <div key={game.id} className="cart-item panel">
                 <div className="cart-item-cover" style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}>
-                  <span className="cart-cover-initial">{game.genre[0]}</span>
+                  {game.image ? (
+                    <img src={game.image} alt={game.title} className="cart-item-img" />
+                  ) : (
+                    <span className="cart-cover-initial">{game.genre[0]}</span>
+                  )}
                 </div>
                 <div className="cart-item-info">
                   <Link to={`/game/${game.id}`} className="cart-item-title">{game.title}</Link>

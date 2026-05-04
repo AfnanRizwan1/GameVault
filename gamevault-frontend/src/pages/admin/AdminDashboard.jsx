@@ -33,7 +33,9 @@ export default function AdminDashboard() {
               return (
                 <div key={game.id} className="top-game-row">
                   <span className="top-game-rank">#{i + 1}</span>
-                  <div className="top-game-cover" style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}>{game.genre[0]}</div>
+                  <div className="top-game-cover" style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}>
+                    {game.image ? <img src={game.image} alt={game.title} className="top-game-cover-img" /> : game.genre[0]}
+                  </div>
                   <div className="top-game-info"><div className="top-game-title">{game.title}</div><div className="top-game-meta"><span className="tag">{game.genre}</span><span className="text-muted text-sm">{game.downloads.toLocaleString()} downloads</span></div></div>
                   <div className="top-game-stats"><div className="top-game-price">{game.price === 0 ? 'FREE' : `$${game.price.toFixed(2)}`}</div><div className="top-game-rating text-gold text-sm"><Icon name="star" size={12} /> {game.rating}</div></div>
                 </div>

@@ -61,7 +61,14 @@ export default function DeveloperHub() {
             const colors = GENRE_COLORS[game.genre] || ['#4da6ff','#1a6dcc'];
             return (
               <div key={game.id} className="dev-game-card panel">
-                <div className="dev-game-cover" style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}><span className="dev-cover-initial">{game.genre[0]}</span>{game.isNew && <span className="dev-new-badge">NEW</span>}</div>
+                <div className="dev-game-cover" style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}>
+                  {game.image ? (
+                    <img src={game.image} alt={game.title} className="dev-game-img" />
+                  ) : (
+                    <span className="dev-cover-initial">{game.genre[0]}</span>
+                  )}
+                  {game.isNew && <span className="dev-new-badge">NEW</span>}
+                </div>
                 <div className="dev-game-info">
                   <div className="dev-game-title">{game.title}</div>
                   <div className="dev-game-meta"><span className="tag">{game.genre}</span><span className={game.price === 0 ? 'text-green font-bold text-sm' : 'text-sm font-bold'}>{game.price === 0 ? 'FREE' : `$${game.price.toFixed(2)}`}</span></div>

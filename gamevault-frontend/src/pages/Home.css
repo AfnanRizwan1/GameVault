@@ -20,6 +20,8 @@
   border-radius: 50% 0 0 60%;
   opacity: 0.12;
   pointer-events: none;
+  background-size: cover;
+  background-position: center;
 }
 
 .hero-content {
@@ -118,6 +120,14 @@
   justify-content: center;
   box-shadow: 0 20px 60px rgba(0,0,0,0.5);
   border: 1px solid rgba(255,255,255,0.1);
+  overflow: hidden;
+}
+
+.hero-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .hero-cover-initial {

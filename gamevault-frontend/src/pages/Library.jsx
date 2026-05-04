@@ -53,7 +53,11 @@ export default function Library() {
             return (
               <div key={game.id} className="lib-card panel">
                 <div className="lib-card-cover" style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}>
-                  <span className="lib-cover-initial">{game.genre[0]}</span>
+                  {game.image ? (
+                    <img src={game.image} alt={game.title} className="lib-card-img" />
+                  ) : (
+                    <span className="lib-cover-initial">{game.genre[0]}</span>
+                  )}
                   <div className="lib-card-overlay">
                     <Link to={`/game/${game.id}`} className="lib-play-btn"><Icon name="play_arrow" size={16} /> View Details</Link>
                   </div>

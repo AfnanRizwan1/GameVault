@@ -120,7 +120,11 @@ export default function Checkout() {
                 return (
                   <div key={g.id} className="co-item">
                     <div className="co-item-cover" style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}>
-                      {g.genre[0]}
+                      {g.image ? (
+                        <img src={g.image} alt={g.title} className="co-item-img" />
+                      ) : (
+                        g.genre[0]
+                      )}
                     </div>
                     <span className="co-item-name">{g.title}</span>
                     <span className="co-item-price">{g.price === 0 ? 'FREE' : `$${g.price.toFixed(2)}`}</span>

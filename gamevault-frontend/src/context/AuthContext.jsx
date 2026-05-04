@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { mockGames } from '../data/mockData';
 
 const AuthContext = createContext(null);
 
@@ -14,7 +15,12 @@ export function AuthProvider({ children }) {
     const savedCart = localStorage.getItem('gv_cart');
     const savedLib = localStorage.getItem('gv_library');
     if (savedUser) setUser(JSON.parse(savedUser));
-    if (savedCart) setCart(JSON.parse(savedCart));
+    if (savedCart) {
+      const savedItems = JSON.parse(savedCart);
+      const hydratedCart = savedItems.map(item => mockGames.find(game => game.id === item.id) || item);
+      setCart(hydratedCart);
+      localStorage.setItem('gv_cart', JSON.stringify(hydratedCart));
+    }
     if (savedLib) setLibrary(JSON.parse(savedLib));
     setLoading(false);
   }, []);

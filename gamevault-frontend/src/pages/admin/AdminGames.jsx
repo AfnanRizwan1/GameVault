@@ -37,7 +37,7 @@ export default function AdminGames() {
       <div className="ag-table-wrap panel">
         <table className="ag-table"><thead><tr><th>Game</th><th>Genre</th><th>Price</th><th>Rating</th><th>Downloads</th><th>Status</th><th className="text-right">Actions</th></tr></thead>
           <tbody>{filtered.map(game => { const colors = GENRE_COLORS[game.genre] || ['#4da6ff','#1a6dcc']; return (
-            <tr key={game.id}><td><div className="ag-game-cell"><div className="ag-game-cover" style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}>{game.genre[0]}</div><div><div className="ag-game-title">{game.title}</div><div className="ag-game-dev text-muted text-sm">{game.developer}</div></div></div></td>
+            <tr key={game.id}><td><div className="ag-game-cell"><div className="ag-game-cover" style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}>{game.image ? <img src={game.image} alt={game.title} className="ag-game-cover-img" /> : game.genre[0]}</div><div><div className="ag-game-title">{game.title}</div><div className="ag-game-dev text-muted text-sm">{game.developer}</div></div></div></td>
               <td><span className="tag">{game.genre}</span></td>
               <td><span className={game.price === 0 ? 'text-green font-bold' : 'ag-price'}>{game.price === 0 ? 'FREE' : `$${game.price.toFixed(2)}`}</span></td>
               <td><span className="ag-rating"><Icon name="star" size={14} className="star-icon" /> {game.rating.toFixed(1)}</span></td>

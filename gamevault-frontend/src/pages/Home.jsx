@@ -34,7 +34,12 @@ function HeroCarousel() {
   return (
     <div className="hero-carousel">
       <div className="hero-slide" style={{ background: `linear-gradient(135deg, ${colors[0]}22, ${colors[1]}11, var(--bg))` }}>
-        <div className="hero-bg-cover" style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }} />
+        <div
+          className="hero-bg-cover"
+          style={game.image
+            ? { backgroundImage: `linear-gradient(90deg, var(--bg), transparent), url(${game.image})` }
+            : { background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}
+        />
 
         <div className="hero-content">
           <div className="hero-left">
@@ -72,7 +77,11 @@ function HeroCarousel() {
 
           <div className="hero-right">
             <div className="hero-cover-frame" style={{ background: `linear-gradient(135deg, ${colors[0]}, ${colors[1]})` }}>
-              <span className="hero-cover-initial">{game.genre[0]}</span>
+              {game.image ? (
+                <img src={game.image} alt={game.title} className="hero-cover-img" />
+              ) : (
+                <span className="hero-cover-initial">{game.genre[0]}</span>
+              )}
             </div>
           </div>
         </div>

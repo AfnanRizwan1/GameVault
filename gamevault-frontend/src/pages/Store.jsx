@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import Icon from '../components/ui/Icon';
+import { FiSearch, FiFilter, FiX, FiSliders } from 'react-icons/fi';
 import GameCard from '../components/ui/GameCard';
 import { mockGames, GENRES } from '../data/mockData';
 import './Store.css';
@@ -27,6 +27,25 @@ export default function Store() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const filter = params.get('filter');
+  const genreFromUrl = params.get('genre') || '';
+  const searchFromUrl = params.get('q') || '';
+
+  useEffect(() => {
+    setSelectedGenre(genreFromUrl);
+    setSearch(searchFromUrl);
+    setShowFreeOnly(filter === 'free');
+  }, [genreFromUrl, searchFromUrl, filter]);
+
+  const handleGenreChange = (genre) => {
+    setSelectedGenre(genre);
+    const nextParams = new URLSearchParams(location.search);
+
+    if (genre) nextParams.set('genre', genre);
+    else nextParams.delete('genre');
+
+    nextParams.delete('filter');
+    navigate(nextParams.toString() ? `/store?${nextParams.toString()}` : '/store');
+  };
 
   const filtered = useMemo(() => {
     let games = [...mockGames];
@@ -73,6 +92,7 @@ export default function Store() {
   const pageTitle = filter === 'new' ? 'New Releases'
     : filter === 'top' ? 'Top Sellers'
     : filter === 'free' ? 'Free to Play'
+    : selectedGenre ? `${selectedGenre} Games`
     : 'Browse Games';
 
   const activeFiltersCount = [
@@ -98,7 +118,7 @@ export default function Store() {
         </div>
         <div className="store-topbar-right">
           <div className="store-search-wrap">
-            <Icon name="search" className="store-search-icon" size={16} />
+            <FiSearch className="store-search-icon" />
             <input
               className="store-search"
               placeholder="Search games..."
@@ -107,7 +127,7 @@ export default function Store() {
             />
             {search && (
               <button className="store-search-clear" onClick={() => setSearch('')}>
-                <Icon name="close" size={14} />
+                <FiX size={14} />
               </button>
             )}
           </div>
@@ -115,7 +135,7 @@ export default function Store() {
             {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
           <button className="store-filter-toggle" onClick={() => setSidebarOpen(!sidebarOpen)}>
-            <Icon name="tune" size={16} />
+            <FiSliders size={16} />
             Filters
             {activeFiltersCount > 0 && <span className="filter-badge-count">{activeFiltersCount}</span>}
           </button>
@@ -137,13 +157,13 @@ export default function Store() {
             <div className="filter-label">Genre</div>
             <button
               className={`genre-pill ${!selectedGenre ? 'active' : ''}`}
-              onClick={() => setSelectedGenre('')}
+              onClick={() => handleGenreChange('')}
             >All</button>
             {GENRES.map(g => (
               <button
                 key={g}
                 className={`genre-pill ${selectedGenre === g ? 'active' : ''}`}
-                onClick={() => setSelectedGenre(selectedGenre === g ? '' : g)}
+                onClick={() => handleGenreChange(selectedGenre === g ? '' : g)}
               >{g}</button>
             ))}
           </div>
@@ -178,9 +198,9 @@ export default function Store() {
           {/* Quick filters */}
           <div className="filter-section">
             <div className="filter-label">Quick Filters</div>
-            <button className={`quick-filter ${filter === 'new' ? 'active' : ''}`} onClick={() => navigate('/store?filter=new')}>New Releases</button>
-            <button className={`quick-filter ${filter === 'top' ? 'active' : ''}`} onClick={() => navigate('/store?filter=top')}><Icon name="emoji_events" size={14} /> Top Sellers</button>
-            <button className={`quick-filter ${filter === 'free' ? 'active' : ''}`} onClick={() => navigate('/store?filter=free')}>Free to Play</button>
+            <button className={`quick-filter ${filter === 'new' ? 'active' : ''}`} onClick={() => navigate('/store?filter=new')}>🆕 New Releases</button>
+            <button className={`quick-filter ${filter === 'top' ? 'active' : ''}`} onClick={() => navigate('/store?filter=top')}>🏆 Top Sellers</button>
+            <button className={`quick-filter ${filter === 'free' ? 'active' : ''}`} onClick={() => navigate('/store?filter=free')}>🆓 Free to Play</button>
           </div>
         </aside>
 
@@ -188,7 +208,7 @@ export default function Store() {
         <div className="store-content">
           {filtered.length === 0 ? (
             <div className="store-empty">
-              <Icon name="search" size={48} style={{ opacity: 0.3 }} />
+              <span className="store-empty-icon">🔍</span>
               <h3>No games found</h3>
               <p>Try adjusting your filters or search query.</p>
               <button className="btn btn-primary" onClick={clearFilters}>Clear Filters</button>

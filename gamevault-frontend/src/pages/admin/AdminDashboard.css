@@ -164,6 +164,14 @@
   font-size: 14px;
   color: rgba(255,255,255,0.25);
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.top-game-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .top-game-info { flex: 1; min-width: 0; }
