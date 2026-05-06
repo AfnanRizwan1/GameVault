@@ -1,60 +1,179 @@
-import User from "../models/User.js";
-import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { validationResult } from "express-validator";
+import User from "../models/User.js";
 
-// Generate token
-const generateToken = (id, role) => {
-  return jwt.sign({ id, role }, process.env.JWT_SECRET, {
-    expiresIn: "7d",
+const generateToken = (user) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET is not configured");
+  }
+
+  return jwt.sign(
+    {
+      id: user._id,
+      role: user.role,
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: process.env.JWT_EXPIRE || "1h",
+    }
+  );
+};
+
+export const formatUser = (user) => {
+  const plain = user.toObject ? user.toObject({ virtuals: true }) : user;
+  const id = plain._id?.toString() || plain.id;
+  const fullName = plain.profile?.fullName || plain.username;
+
+  return {
+    id,
+    _id: id,
+    username: plain.username,
+    name: fullName,
+    email: plain.email,
+    role: plain.role,
+    profile: {
+      fullName,
+      avatar: plain.profile?.avatar || "",
+      bio: plain.profile?.bio || "",
+    },
+    avatar: plain.profile?.avatar || null,
+    bio: plain.profile?.bio || "",
+    joinDate: plain.createdAt,
+    createdAt: plain.createdAt,
+    updatedAt: plain.updatedAt,
+    studio: plain.role === "developer" ? fullName : undefined,
+  };
+};
+
+const sendAuthResponse = (res, statusCode, user) => {
+  const token = generateToken(user);
+
+  return res.status(statusCode).json({
+    success: true,
+    data: {
+      token,
+      user: formatUser(user),
+    },
   });
 };
 
-// REGISTER
-export const registerUser = async (req, res) => {
-  const { username, email, password, role } = req.body;
+const validationMessage = (req) => {
+  const errors = validationResult(req);
+  if (errors.isEmpty()) return null;
+  return errors.array().map((error) => error.msg).join(", ");
+};
 
+export const registerUser = async (req, res, next) => {
   try {
-    const userExists = await User.findOne({ email });
-
-    if (userExists) {
-      return res.status(400).json({ message: "User already exists" });
+    const message = validationMessage(req);
+    if (message) {
+      return res.status(400).json({ success: false, message });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const { email, password } = req.body;
+    const requestedName = req.body.username || req.body.name || req.body.fullName;
+    const normalizedEmail = email.toLowerCase();
+
+    const userExists = await User.findOne({ email: normalizedEmail });
+    if (userExists) {
+      return res.status(409).json({
+        success: false,
+        message: "A user with this email already exists",
+      });
+    }
+
+    const userCount = await User.countDocuments();
+    let role = ["customer", "developer"].includes(req.body.role)
+      ? req.body.role
+      : "customer";
+
+    if (req.body.role === "admin" && userCount === 0) {
+      role = "admin";
+    }
 
     const user = await User.create({
-      username,
-      email,
-      password: hashedPassword,
+      username: requestedName,
+      email: normalizedEmail,
+      password,
       role,
+      profile: {
+        fullName: requestedName,
+        avatar: req.body.avatar || "",
+        bio: req.body.bio || "",
+      },
     });
 
-    res.status(201).json({
-      token: generateToken(user._id, user.role),
-      user,
-    });
+    return sendAuthResponse(res, 201, user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return next(error);
   }
 };
 
-// LOGIN
-export const loginUser = async (req, res) => {
-  const { email, password } = req.body;
-
+export const loginUser = async (req, res, next) => {
   try {
-    const user = await User.findOne({ email });
-
-    if (user && (await bcrypt.compare(password, user.password))) {
-      res.json({
-        token: generateToken(user._id, user.role),
-        user,
-      });
-    } else {
-      res.status(401).json({ message: "Invalid credentials" });
+    const message = validationMessage(req);
+    if (message) {
+      return res.status(400).json({ success: false, message });
     }
+
+    const { email, password } = req.body;
+    const user = await User.findOne({ email: email.toLowerCase() }).select("+password");
+
+    if (!user || !(await user.matchPassword(password))) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    return sendAuthResponse(res, 200, user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return next(error);
+  }
+};
+
+export const getCurrentUser = async (req, res, next) => {
+  try {
+    return res.status(200).json({
+      success: true,
+      data: {
+        user: formatUser(req.user),
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+export const updateProfile = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const nextName = req.body.username || req.body.name || req.body.fullName;
+    if (nextName) {
+      user.username = nextName;
+      user.profile.fullName = nextName;
+    }
+
+    if (typeof req.body.avatar === "string") user.profile.avatar = req.body.avatar;
+    if (typeof req.body.bio === "string") user.profile.bio = req.body.bio;
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        user: formatUser(user),
+      },
+    });
+  } catch (error) {
+    return next(error);
   }
 };
