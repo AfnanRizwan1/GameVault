@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '../../components/ui/Icon';
-import { mockGames, mockAdminStats, mockUsers } from '../../data/mockData';
+import { adminApi } from '../../services/api';
 import './AdminDashboard.css';
 
 const GENRE_COLORS = {
@@ -8,21 +9,63 @@ const GENRE_COLORS = {
   Puzzle:['#f39c12','#d68910'],Horror:['#2c3e50','#34495e'],Adventure:['#27ae60','#1e8449'],
   Shooter:['#e74c3c','#922b21'],Simulation:['#16a085','#0e6655'],Sports:['#f1c40f','#d4ac0d'],Indie:['#8e44ad','#6c3483'],
 };
-const stats = mockAdminStats;
-const topGames = [...mockGames].sort((a, b) => b.downloads - a.downloads).slice(0, 5);
+
+const emptyStats = {
+  totalUsers: 0,
+  totalGames: 0,
+  totalRevenue: 0,
+  totalOrders: 0,
+  activeGames: 0,
+  pendingApprovals: 0,
+};
 
 export default function AdminDashboard() {
+  const [stats, setStats] = useState(emptyStats);
+  const [games, setGames] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const loadDashboard = async () => {
+      setLoading(true);
+      setError('');
+
+      try {
+        const [statsData, gameData, userData] = await Promise.all([
+          adminApi.stats(),
+          adminApi.games(),
+          adminApi.users(),
+        ]);
+        setStats({ ...emptyStats, ...statsData });
+        setGames(gameData.games || []);
+        setUsers(userData.users || []);
+      } catch (err) {
+        setError(err.message || 'Unable to load dashboard.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, []);
+
+  const topGames = [...games].sort((a, b) => b.downloads - a.downloads).slice(0, 5);
+
+  if (loading) return <div className="loading-screen"><div className="loader" /></div>;
+
   return (
     <div className="admin-page">
       <div className="admin-page-header">
         <div><h1 className="admin-title">Dashboard</h1><p className="admin-subtitle">Platform overview and analytics</p></div>
         <div className="admin-header-actions"><Link to="/admin/games" className="btn btn-primary btn-sm"><Icon name="apps" size={16} /> Manage Games</Link></div>
       </div>
+      {error && <div className="auth-error" style={{ marginBottom: 16 }}>{error}</div>}
       <div className="admin-stats-grid">
         <div className="admin-stat-card"><div className="stat-card-icon" style={{ background: 'rgba(77,166,255,0.15)', color: '#4da6ff' }}><Icon name="apps" size={22} /></div><div className="stat-card-body"><div className="stat-card-value">{stats.totalGames}</div><div className="stat-card-label">Total Games</div></div><div className="stat-card-trend up">+{stats.activeGames} active</div></div>
-        <div className="admin-stat-card"><div className="stat-card-icon" style={{ background: 'rgba(76,175,118,0.15)', color: '#4caf76' }}><Icon name="group" size={22} /></div><div className="stat-card-body"><div className="stat-card-value">{stats.totalUsers.toLocaleString()}</div><div className="stat-card-label">Total Users</div></div><div className="stat-card-trend up">+{stats.newUsersThisMonth.toLocaleString()} this month</div></div>
+        <div className="admin-stat-card"><div className="stat-card-icon" style={{ background: 'rgba(76,175,118,0.15)', color: '#4caf76' }}><Icon name="group" size={22} /></div><div className="stat-card-body"><div className="stat-card-value">{stats.totalUsers.toLocaleString()}</div><div className="stat-card-label">Total Users</div></div><div className="stat-card-trend up">All roles</div></div>
         <div className="admin-stat-card"><div className="stat-card-icon" style={{ background: 'rgba(240,169,64,0.15)', color: '#f0a940' }}><Icon name="shopping_cart" size={22} /></div><div className="stat-card-body"><div className="stat-card-value">{stats.totalOrders.toLocaleString()}</div><div className="stat-card-label">Total Orders</div></div><div className="stat-card-trend up">All time</div></div>
-        <div className="admin-stat-card"><div className="stat-card-icon" style={{ background: 'rgba(155,89,182,0.15)', color: '#9b59b6' }}><Icon name="attach_money" size={22} /></div><div className="stat-card-body"><div className="stat-card-value">${(stats.totalRevenue / 1000).toFixed(0)}K</div><div className="stat-card-label">Total Revenue</div></div><div className="stat-card-trend up">+${(stats.revenueThisMonth / 1000).toFixed(1)}K this month</div></div>
+        <div className="admin-stat-card"><div className="stat-card-icon" style={{ background: 'rgba(155,89,182,0.15)', color: '#9b59b6' }}><Icon name="attach_money" size={22} /></div><div className="stat-card-body"><div className="stat-card-value">${(stats.totalRevenue / 1000).toFixed(0)}K</div><div className="stat-card-label">Total Revenue</div></div><div className="stat-card-trend up">{stats.pendingApprovals} drafts</div></div>
       </div>
       <div className="admin-content-grid">
         <div className="admin-panel">
@@ -41,6 +84,7 @@ export default function AdminDashboard() {
                 </div>
               );
             })}
+            {topGames.length === 0 && <p className="text-muted">No games published yet.</p>}
           </div>
         </div>
         <div className="admin-right-col">
@@ -57,8 +101,8 @@ export default function AdminDashboard() {
             <div className="admin-panel-header"><h2><Icon name="bar_chart" size={18} /> Genre Breakdown</h2></div>
             <div className="genre-breakdown">
               {Object.entries(GENRE_COLORS).map(([genre, colors]) => {
-                const count = mockGames.filter(g => g.genre === genre).length;
-                const pct = Math.round((count / mockGames.length) * 100);
+                const count = games.filter(g => g.genre === genre).length;
+                const pct = games.length ? Math.round((count / games.length) * 100) : 0;
                 if (count === 0) return null;
                 return (<div key={genre} className="genre-bar-row"><span className="genre-bar-label">{genre}</span><div className="genre-bar-track"><div className="genre-bar-fill" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${colors[0]}, ${colors[1]})` }} /></div><span className="genre-bar-count">{count}</span></div>);
               })}
@@ -67,7 +111,7 @@ export default function AdminDashboard() {
           <div className="admin-panel">
             <div className="admin-panel-header"><h2><Icon name="group" size={18} /> Recent Users</h2><Link to="/admin/users" className="admin-panel-link">View All <Icon name="arrow_forward" size={14} /></Link></div>
             <div className="recent-users-list">
-              {mockUsers.map(u => (<div key={u.id} className="recent-user-row"><div className="recent-user-avatar">{u.name[0]}</div><div className="recent-user-info"><div className="recent-user-name">{u.name}</div><div className="recent-user-email text-muted text-sm">{u.email}</div></div><span className={`badge ${u.role === 'admin' ? 'badge-red' : u.role === 'developer' ? 'badge-gold' : 'badge-blue'}`}>{u.role}</span></div>))}
+              {users.slice(0, 5).map(u => (<div key={u.id} className="recent-user-row"><div className="recent-user-avatar">{u.name[0]}</div><div className="recent-user-info"><div className="recent-user-name">{u.name}</div><div className="recent-user-email text-muted text-sm">{u.email}</div></div><span className={`badge ${u.role === 'admin' ? 'badge-red' : u.role === 'developer' ? 'badge-gold' : 'badge-blue'}`}>{u.role}</span></div>))}
             </div>
           </div>
         </div>
