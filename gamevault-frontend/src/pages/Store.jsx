@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FiSearch, FiFilter, FiX, FiSliders } from 'react-icons/fi';
 import GameCard from '../components/ui/GameCard';
-import { mockGames, GENRES } from '../data/mockData';
+import { GENRES } from '../data/mockData';
+import { useGames } from '../context/GameContext';
 import './Store.css';
 
 const SORT_OPTIONS = [
@@ -15,6 +16,7 @@ const SORT_OPTIONS = [
 ];
 
 export default function Store() {
+  const { games: catalog, loading, error } = useGames();
   const location = useLocation();
   const navigate = useNavigate();
   const params = new URLSearchParams(location.search);
@@ -48,7 +50,7 @@ export default function Store() {
   };
 
   const filtered = useMemo(() => {
-    let games = [...mockGames];
+    let games = [...catalog];
 
     // Apply quick filters from URL
     if (filter === 'new') games = games.filter(g => g.isNew);
@@ -87,7 +89,7 @@ export default function Store() {
     }
 
     return games;
-  }, [search, selectedGenre, sort, priceRange, showFreeOnly, filter]);
+  }, [catalog, search, selectedGenre, sort, priceRange, showFreeOnly, filter]);
 
   const pageTitle = filter === 'new' ? 'New Releases'
     : filter === 'top' ? 'Top Sellers'
@@ -206,7 +208,14 @@ export default function Store() {
 
         {/* Games grid */}
         <div className="store-content">
-          {filtered.length === 0 ? (
+          {loading ? (
+            <div className="loading-screen"><div className="loader" /></div>
+          ) : error ? (
+            <div className="store-empty">
+              <h3>Unable to load games</h3>
+              <p>{error}</p>
+            </div>
+          ) : filtered.length === 0 ? (
             <div className="store-empty">
               <span className="store-empty-icon">🔍</span>
               <h3>No games found</h3>
