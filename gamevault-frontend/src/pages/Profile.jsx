@@ -1,22 +1,32 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { mockGames, mockOrders } from '../data/mockData';
 import Icon from '../components/ui/Icon';
 import './Profile.css';
 
 export default function Profile() {
-  const { user, library } = useAuth();
+  const { user, libraryGames, orders, updateProfile } = useAuth();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user?.name || '');
   const [saved, setSaved] = useState(false);
-  const ownedGames = mockGames.filter(g => library.includes(g.id));
-  const orders = mockOrders.filter(o => o.userId === user?.id);
+  const [error, setError] = useState('');
+  const ownedGames = libraryGames;
 
-  const handleSave = (e) => {
+  useEffect(() => {
+    setName(user?.name || '');
+  }, [user]);
+
+  const handleSave = async (e) => {
     e.preventDefault();
-    setSaved(true);
-    setEditing(false);
-    setTimeout(() => setSaved(false), 3000);
+    setError('');
+
+    try {
+      await updateProfile({ name });
+      setSaved(true);
+      setEditing(false);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      setError(err.message || 'Unable to save profile.');
+    }
   };
 
   const roleColors = { admin: 'badge-red', developer: 'badge-gold', customer: 'badge-blue' };
@@ -41,6 +51,7 @@ export default function Profile() {
                 <button className="profile-edit-btn" onClick={() => setEditing(true)}><Icon name="edit" size={14} /></button>
               </div>
             )}
+            {error && <p className="profile-saved" style={{ color: 'var(--danger)' }}>{error}</p>}
             {saved && <p className="profile-saved"><Icon name="check" size={14} /> Profile saved</p>}
             <span className={`badge ${roleColors[user?.role] || 'badge-blue'}`}>{user?.role}</span>
           </div>
@@ -73,7 +84,7 @@ export default function Profile() {
             </div>
             <div className="stat-card">
               <div className="stat-icon"><Icon name="star" size={28} /></div>
-              <div className="stat-value">{ownedGames.length > 0 ? (ownedGames.reduce((s, g) => s + g.rating, 0) / ownedGames.length).toFixed(1) : '—'}</div>
+              <div className="stat-value">{ownedGames.length > 0 ? (ownedGames.reduce((s, g) => s + g.rating, 0) / ownedGames.length).toFixed(1) : '-'}</div>
               <div className="stat-label">Avg Rating</div>
             </div>
           </div>
@@ -96,8 +107,11 @@ export default function Profile() {
               <h3 className="profile-section-title"><Icon name="shopping_bag" size={18} /> Purchase History</h3>
               {orders.map(o => (
                 <div key={o.id} className="order-row">
-                  <div><div className="order-name">{o.gameName}</div><div className="order-date text-muted text-sm">{o.date} · {o.paymentMethod}</div></div>
-                  <span className="order-price">${o.price.toFixed(2)}</span>
+                  <div>
+                    <div className="order-name">{o.games?.map(g => g.title).join(', ') || 'Game purchase'}</div>
+                    <div className="order-date text-muted text-sm">{o.createdAt ? new Date(o.createdAt).toLocaleDateString() : ''} - {o.paymentMethod}</div>
+                  </div>
+                  <span className="order-price">${Number(o.totalAmount || 0).toFixed(2)}</span>
                 </div>
               ))}
             </div>
