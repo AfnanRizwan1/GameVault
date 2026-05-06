@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import Icon from './Icon';
 import './GameCard.css';
@@ -29,15 +30,18 @@ function StarRating({ rating }) {
 
 export default function GameCard({ game, rank }) {
   const { user, addToCart, isInCart, isOwned } = useAuth();
+  const [adding, setAdding] = useState(false);
   const colors = GENRE_COLORS[game.genre] || ['#4da6ff', '#1a6dcc'];
   const owned = isOwned(game.id);
   const inCart = isInCart(game.id);
 
-  const handleCart = (e) => {
+  const handleCart = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) return;
-    addToCart(game);
+    if (!user || adding) return;
+    setAdding(true);
+    await addToCart(game);
+    setAdding(false);
   };
 
   return (
@@ -99,8 +103,8 @@ export default function GameCard({ game, rank }) {
                 Get Free
               </Link>
             ) : user ? (
-              <button className="btn-cart btn-cart-add" onClick={handleCart}>
-                <Icon name="shopping_cart" size={14} />
+              <button className="btn-cart btn-cart-add" onClick={handleCart} disabled={adding}>
+                {adding ? <span className="spinner" /> : <Icon name="shopping_cart" size={14} />}
               </button>
             ) : (
               <Link to="/login" className="btn-cart btn-cart-add">
