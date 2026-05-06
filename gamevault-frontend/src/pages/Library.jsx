@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { mockGames } from '../data/mockData';
 import Icon from '../components/ui/Icon';
 import { useState } from 'react';
 import './Library.css';
@@ -12,9 +11,9 @@ const GENRE_COLORS = {
 };
 
 export default function Library() {
-  const { library } = useAuth();
+  const { libraryGames } = useAuth();
   const [search, setSearch] = useState('');
-  const ownedGames = mockGames.filter(g => library.includes(g.id));
+  const ownedGames = libraryGames;
   const filtered = ownedGames.filter(g =>
     g.title.toLowerCase().includes(search.toLowerCase()) ||
     g.genre.toLowerCase().includes(search.toLowerCase())
