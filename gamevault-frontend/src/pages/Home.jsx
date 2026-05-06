@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Icon from '../components/ui/Icon';
 import GameCard from '../components/ui/GameCard';
-import { mockGames } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
+import { useGames } from '../context/GameContext';
 import './Home.css';
 
 const GENRE_COLORS = {
@@ -14,17 +14,36 @@ const GENRE_COLORS = {
   Sports: ['#f1c40f', '#d4ac0d'], Indie: ['#8e44ad', '#6c3483'],
 };
 
-const featuredGames = mockGames.filter(g => g.isFeatured);
-
-function HeroCarousel() {
+function HeroCarousel({ featuredGames }) {
   const [current, setCurrent] = useState(0);
   const { user, addToCart, isInCart, isOwned } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (featuredGames.length === 0) return undefined;
     const timer = setInterval(() => setCurrent(c => (c + 1) % featuredGames.length), 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [featuredGames.length]);
+
+  useEffect(() => {
+    setCurrent(0);
+  }, [featuredGames]);
+
+  if (featuredGames.length === 0) {
+    return (
+      <div className="hero-carousel">
+        <div className="hero-slide">
+          <div className="hero-content">
+            <div className="hero-left">
+              <h1 className="hero-title">GameVault</h1>
+              <p className="hero-desc">No games are published yet. Seed the backend or publish a new game to fill the store.</p>
+              <Link to="/store" className="btn btn-primary btn-lg">Browse Store</Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const game = featuredGames[current];
   const colors = GENRE_COLORS[game.genre] || ['#4da6ff', '#1a6dcc'];
@@ -63,9 +82,9 @@ function HeroCarousel() {
                 ) : inCart ? (
                   <Link to="/cart" className="btn btn-primary btn-lg"><Icon name="shopping_cart" size={18} /> View Cart</Link>
                 ) : (
-                  <button className="btn btn-primary btn-lg" onClick={() => {
+                  <button className="btn btn-primary btn-lg" onClick={async () => {
                     if (!user) { navigate('/login'); return; }
-                    addToCart(game);
+                    await addToCart(game);
                   }}>
                     <Icon name="shopping_cart" size={18} /> {game.price === 0 ? 'Add to Library' : 'Add to Cart'}
                   </button>
@@ -107,13 +126,20 @@ function SectionHeader({ title, iconName, linkTo, linkText }) {
 }
 
 export default function Home() {
-  const newGames = mockGames.filter(g => g.isNew).slice(0, 4);
-  const topGames = [...mockGames].sort((a, b) => b.downloads - a.downloads).slice(0, 4);
-  const freeGames = mockGames.filter(g => g.isFree).slice(0, 4);
+  const { games, loading, error } = useGames();
+  const featuredGames = games.filter(g => g.isFeatured).length > 0 ? games.filter(g => g.isFeatured) : games.slice(0, 5);
+  const newGames = games.filter(g => g.isNew).slice(0, 4);
+  const topGames = [...games].sort((a, b) => b.downloads - a.downloads).slice(0, 4);
+  const freeGames = games.filter(g => g.isFree).slice(0, 4);
+
+  if (loading) {
+    return <div className="loading-screen"><div className="loader" /></div>;
+  }
 
   return (
     <div className="home-page">
-      <HeroCarousel />
+      {error && <div className="auth-error" style={{ margin: 24 }}>{error}</div>}
+      <HeroCarousel featuredGames={featuredGames} />
 
       <div className="home-sections page-content">
         {/* New Releases */}
