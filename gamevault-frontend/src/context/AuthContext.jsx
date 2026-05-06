@@ -1,98 +1,197 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import { mockGames } from '../data/mockData';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { authApi, normalizeUser, orderApi, setAuthToken } from '../services/api';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [cart, setCart] = useState([]);
-  const [library, setLibrary] = useState([1, 4, 6]); // pre-owned game ids for demo
+  const [libraryGames, setLibraryGames] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Restore session from localStorage
-    const savedUser = localStorage.getItem('gv_user');
-    const savedCart = localStorage.getItem('gv_cart');
-    const savedLib = localStorage.getItem('gv_library');
-    if (savedUser) setUser(JSON.parse(savedUser));
-    if (savedCart) {
-      const savedItems = JSON.parse(savedCart);
-      const hydratedCart = savedItems.map(item => mockGames.find(game => game.id === item.id) || item);
-      setCart(hydratedCart);
-      localStorage.setItem('gv_cart', JSON.stringify(hydratedCart));
-    }
-    if (savedLib) setLibrary(JSON.parse(savedLib));
-    setLoading(false);
-  }, []);
-
-  const login = (email, password) => {
-    // Mock login - in real app this would call API
-    const mockUsers = {
-      'admin@gamevault.com': { id: 3, name: 'Admin User', email: 'admin@gamevault.com', role: 'admin' },
-      'dev@gamevault.com': { id: 2, name: 'Sam Chen', email: 'dev@gamevault.com', role: 'developer', studio: 'NovaStar Studios' },
-      'user@gamevault.com': { id: 1, name: 'Alex Morgan', email: 'user@gamevault.com', role: 'customer' },
-    };
-    const foundUser = mockUsers[email];
-    if (foundUser && password.length >= 6) {
-      const userData = { ...foundUser, joinDate: new Date().toISOString() };
-      setUser(userData);
-      localStorage.setItem('gv_user', JSON.stringify(userData));
-      return { success: true };
-    }
-    return { success: false, error: 'Invalid email or password.' };
+  const persistUser = (nextUser) => {
+    if (nextUser) localStorage.setItem('gv_user', JSON.stringify(nextUser));
+    else localStorage.removeItem('gv_user');
   };
 
-  const register = (name, email, password, role) => {
-    const newUser = { id: Date.now(), name, email, role: role || 'customer', joinDate: new Date().toISOString() };
-    setUser(newUser);
-    localStorage.setItem('gv_user', JSON.stringify(newUser));
-    return { success: true };
+  const applyCart = (items) => {
+    const normalized = items || [];
+    setCart(normalized);
+    localStorage.setItem('gv_cart', JSON.stringify(normalized));
+  };
+
+  const applyLibrary = (items) => {
+    const normalized = items || [];
+    setLibraryGames(normalized);
+    localStorage.setItem('gv_library', JSON.stringify(normalized.map((game) => game.id)));
+  };
+
+  const loadAccountData = async () => {
+    const [cartData, libraryData, orderData] = await Promise.all([
+      orderApi.getCart(),
+      orderApi.library(),
+      orderApi.list(),
+    ]);
+
+    applyCart(cartData.items || []);
+    applyLibrary(libraryData.games || []);
+    setOrders(orderData.orders || []);
+  };
+
+  useEffect(() => {
+    const restoreSession = async () => {
+      const savedToken = localStorage.getItem('gv_token');
+      const savedUser = localStorage.getItem('gv_user');
+
+      if (savedUser) setUser(JSON.parse(savedUser));
+      if (!savedToken) {
+        setLoading(false);
+        return;
+      }
+
+      setAuthToken(savedToken);
+
+      try {
+        const data = await authApi.me();
+        const normalizedUser = normalizeUser(data.user);
+        setUser(normalizedUser);
+        persistUser(normalizedUser);
+        await loadAccountData();
+      } catch (_err) {
+        setAuthToken('');
+        setUser(null);
+        setCart([]);
+        setLibraryGames([]);
+        setOrders([]);
+        localStorage.removeItem('gv_user');
+        localStorage.removeItem('gv_cart');
+        localStorage.removeItem('gv_library');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    restoreSession();
+  }, []);
+
+  const login = async (email, password) => {
+    try {
+      const data = await authApi.login(email, password);
+      setAuthToken(data.token);
+      const normalizedUser = normalizeUser(data.user);
+      setUser(normalizedUser);
+      persistUser(normalizedUser);
+      await loadAccountData();
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message || 'Invalid email or password.' };
+    }
+  };
+
+  const register = async (name, email, password, role) => {
+    try {
+      const data = await authApi.register({ name, email, password, role });
+      setAuthToken(data.token);
+      const normalizedUser = normalizeUser(data.user);
+      setUser(normalizedUser);
+      persistUser(normalizedUser);
+      applyCart([]);
+      applyLibrary([]);
+      setOrders([]);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message || 'Unable to create account.' };
+    }
   };
 
   const logout = () => {
+    setAuthToken('');
     setUser(null);
     setCart([]);
-    localStorage.removeItem('gv_user');
+    setLibraryGames([]);
+    setOrders([]);
+    persistUser(null);
     localStorage.removeItem('gv_cart');
+    localStorage.removeItem('gv_library');
   };
 
-  const addToCart = (game) => {
-    if (cart.find(i => i.id === game.id)) return false;
-    if (library.includes(game.id)) return false;
-    const newCart = [...cart, game];
-    setCart(newCart);
-    localStorage.setItem('gv_cart', JSON.stringify(newCart));
-    return true;
+  const refreshCart = async () => {
+    const data = await orderApi.getCart();
+    applyCart(data.items || []);
   };
 
-  const removeFromCart = (gameId) => {
-    const newCart = cart.filter(i => i.id !== gameId);
-    setCart(newCart);
-    localStorage.setItem('gv_cart', JSON.stringify(newCart));
+  const refreshLibrary = async () => {
+    const data = await orderApi.library();
+    applyLibrary(data.games || []);
   };
 
-  const clearCart = () => {
-    setCart([]);
-    localStorage.removeItem('gv_cart');
+  const refreshOrders = async () => {
+    const data = await orderApi.list();
+    setOrders(data.orders || []);
   };
 
-  const purchaseGames = (gameIds) => {
-    const newLib = [...new Set([...library, ...gameIds])];
-    setLibrary(newLib);
-    localStorage.setItem('gv_library', JSON.stringify(newLib));
-    clearCart();
+  const addToCart = async (game) => {
+    if (!user || !game) return false;
+    if (cart.find((item) => item.id === game.id)) return false;
+    if (libraryGames.some((item) => item.id === game.id)) return false;
+
+    try {
+      const data = await orderApi.addToCart(game.id);
+      applyCart(data.items || []);
+      return true;
+    } catch (_err) {
+      return false;
+    }
   };
 
-  const cartTotal = cart.reduce((sum, g) => sum + (g.price || 0), 0);
+  const removeFromCart = async (gameId) => {
+    try {
+      const data = await orderApi.removeFromCart(gameId);
+      applyCart(data.items || []);
+    } catch (_err) {
+      const newCart = cart.filter((item) => item.id !== String(gameId));
+      applyCart(newCart);
+    }
+  };
+
+  const clearCart = async () => {
+    try {
+      await orderApi.clearCart();
+    } catch (_err) {
+      // Local cleanup still keeps the UI honest if the session just expired.
+    }
+    applyCart([]);
+  };
+
+  const purchaseGames = async (_gameIds, paymentMethod = 'mock') => {
+    const data = await orderApi.checkout({ paymentMethod });
+    applyCart([]);
+    applyLibrary(data.library || []);
+    await refreshOrders();
+    return data.order;
+  };
+
+  const updateProfile = async (profile) => {
+    const data = await authApi.updateProfile(profile);
+    const normalizedUser = normalizeUser(data.user);
+    setUser(normalizedUser);
+    persistUser(normalizedUser);
+    return normalizedUser;
+  };
+
+  const library = useMemo(() => libraryGames.map((game) => game.id), [libraryGames]);
+  const cartTotal = cart.reduce((sum, game) => sum + (game.price || 0), 0);
   const cartCount = cart.length;
-  const isInCart = (id) => cart.some(g => g.id === id);
-  const isOwned = (id) => library.includes(id);
+  const isInCart = (id) => cart.some((game) => game.id === String(id));
+  const isOwned = (id) => library.includes(String(id));
 
   return (
     <AuthContext.Provider value={{
-      user, loading, cart, library, cartTotal, cartCount,
+      user, loading, cart, library, libraryGames, orders, cartTotal, cartCount,
       login, register, logout, addToCart, removeFromCart,
-      clearCart, purchaseGames, isInCart, isOwned
+      clearCart, purchaseGames, updateProfile, refreshCart,
+      refreshLibrary, refreshOrders, isInCart, isOwned
     }}>
       {children}
     </AuthContext.Provider>
