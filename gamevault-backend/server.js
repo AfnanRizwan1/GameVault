@@ -1,24 +1,59 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
+import fs from "fs";
+import path from "path";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
+import gameRoutes from "./routes/gameRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
+import reviewRoutes from "./routes/reviewRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import { errorMiddleware, notFound } from "./middleware/errorMiddleware.js";
 
 dotenv.config();
 
 connectDB();
 
 const app = express();
+const uploadRoot = path.join(process.cwd(), "uploads");
+
+fs.mkdirSync(path.join(uploadRoot, "games", "images"), { recursive: true });
+fs.mkdirSync(path.join(uploadRoot, "games", "files"), { recursive: true });
 
 // Middleware
-app.use(express.json());
-app.use(cors());
+const allowedOrigins = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(",").map((origin) => origin.trim())
+  : true;
+
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static(uploadRoot));
+
 app.use("/api/auth", authRoutes);
+app.use("/api/games", gameRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Test route
 app.get("/", (req, res) => {
-  res.send("API is running...");
+  res.status(200).json({
+    success: true,
+    data: {
+      message: "GameVault API is running",
+    },
+  });
 });
+
+app.use(notFound);
+app.use(errorMiddleware);
 
 const PORT = process.env.PORT || 5000;
 
