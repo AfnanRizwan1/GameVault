@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { GameProvider } from './context/GameContext';
 import Navbar from './components/layout/Navbar';
 import Sidebar from './components/layout/Sidebar';
 import Footer from './components/layout/Footer';
@@ -65,7 +66,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppLayout />
+        <GameProvider>
+          <AppLayout />
+        </GameProvider>
       </AuthProvider>
     </BrowserRouter>
   );
