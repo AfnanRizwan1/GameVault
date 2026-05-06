@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { mockGames } from '../../data/mockData';
+import { useGames } from '../../context/GameContext';
 import Icon from '../ui/Icon';
 import './Navbar.css';
 
 export default function Navbar({ sidebarOpen, setSidebarOpen }) {
   const { user, logout, cartCount } = useAuth();
+  const { games } = useGames();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,7 +29,7 @@ export default function Navbar({ sidebarOpen, setSidebarOpen }) {
   const handleSearch = (q) => {
     setSearchQuery(q);
     if (q.trim().length > 1) {
-      const results = mockGames.filter(g =>
+      const results = games.filter(g =>
         g.title.toLowerCase().includes(q.toLowerCase()) ||
         g.genre.toLowerCase().includes(q.toLowerCase())
       ).slice(0, 5);
@@ -133,14 +134,14 @@ export default function Navbar({ sidebarOpen, setSidebarOpen }) {
           {user ? (
             <div className="user-menu-wrap" ref={userMenuRef}>
               <button className="user-btn" onClick={() => setUserMenuOpen(!userMenuOpen)}>
-                <div className="user-avatar">{user.name[0]}</div>
-                <span className="user-name">{user.name.split(' ')[0]}</span>
+                <div className="user-avatar">{user.name?.[0] || '?'}</div>
+                <span className="user-name">{(user.name || 'User').split(' ')[0]}</span>
                 <Icon name="expand_more" size={14} />
               </button>
               {userMenuOpen && (
                 <div className="dropdown-menu">
                   <div className="dropdown-user-info">
-                    <div className="dropdown-user-name">{user.name}</div>
+                    <div className="dropdown-user-name">{user.name || 'GameVault User'}</div>
                     <div className="dropdown-user-role badge badge-blue">{user.role}</div>
                   </div>
                   <div className="dropdown-divider" />
