@@ -1,7 +1,8 @@
 import { useParams, Link } from 'react-router-dom';
-import { useState } from 'react';
-import { mockGames, mockReviews } from '../data/mockData';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useGames } from '../context/GameContext';
+import { gamesApi, reviewApi } from '../services/api';
 import Icon from '../components/ui/Icon';
 import './GameDetail.css';
 
@@ -32,18 +33,48 @@ function StarInput({ value, onChange }) {
 
 export default function GameDetail() {
   const { id } = useParams();
-  const game = mockGames.find(g => g.id === parseInt(id));
+  const { games } = useGames();
+  const [game, setGame] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const { user, addToCart, isInCart, isOwned } = useAuth();
   const [reviewText, setReviewText] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
   const [submitted, setSubmitted] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
-  const [localReviews, setLocalReviews] = useState(mockReviews.filter(r => r.gameId === parseInt(id)));
+  const [localReviews, setLocalReviews] = useState([]);
+  const [actionError, setActionError] = useState('');
 
-  if (!game) {
+  useEffect(() => {
+    const loadGame = async () => {
+      setLoading(true);
+      setError('');
+      setActionError('');
+
+      try {
+        const cached = games.find(g => g.id === String(id));
+        const nextGame = cached || (await gamesApi.get(id)).game;
+        const reviewData = await gamesApi.reviews(id);
+        setGame(nextGame);
+        setLocalReviews(reviewData.reviews || []);
+      } catch (err) {
+        setError(err.message || 'Game not found');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadGame();
+  }, [games, id]);
+
+  if (loading) {
+    return <div className="loading-screen"><div className="loader" /></div>;
+  }
+
+  if (!game || error) {
     return (
       <div className="gd-not-found">
-        <h2>Game not found</h2>
+        <h2>{error || 'Game not found'}</h2>
         <Link to="/store" className="btn btn-primary"><Icon name="arrow_back" size={16} /> Back to Store</Link>
       </div>
     );
@@ -55,21 +86,34 @@ export default function GameDetail() {
   const avgRating = localReviews.length > 0
     ? (localReviews.reduce((s, r) => s + r.rating, 0) / localReviews.length).toFixed(1)
     : game.rating.toFixed(1);
-  const screenshotImages = [1, 2, 3].map(n => `/images/screenshots/${game.id}-${n}.jpg`);
+  const reviewCount = localReviews.length || game.reviews;
+  const screenshotImages = game.screenshots?.length ? game.screenshots : [];
 
-  const handleAddToCart = () => { if (user) addToCart(game); };
+  const handleAddToCart = async () => { if (user) await addToCart(game); };
 
-  const handleReviewSubmit = (e) => {
+  const handleDownload = async () => {
+    setActionError('');
+    try {
+      await gamesApi.download(game.id, `${game.title.replace(/\s+/g, '-').toLowerCase()}.zip`);
+    } catch (err) {
+      setActionError(err.message || 'Unable to download game');
+    }
+  };
+
+  const handleReviewSubmit = async (e) => {
     e.preventDefault();
     if (!user || !reviewText.trim()) return;
-    const newReview = {
-      id: Date.now(), gameId: game.id, userId: user.id, userName: user.name,
-      rating: reviewRating, text: reviewText, date: new Date().toISOString().split('T')[0], helpful: 0
-    };
-    setLocalReviews(r => [newReview, ...r]);
-    setReviewText('');
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 3000);
+    setActionError('');
+
+    try {
+      const data = await reviewApi.create({ gameId: game.id, rating: reviewRating, comment: reviewText });
+      setLocalReviews(r => [data.review, ...r]);
+      setReviewText('');
+      setSubmitted(true);
+      setTimeout(() => setSubmitted(false), 3000);
+    } catch (err) {
+      setActionError(err.message || 'Unable to submit review');
+    }
   };
 
   return (
@@ -92,7 +136,7 @@ export default function GameDetail() {
               <div className="gd-meta">
                 <span className="gd-meta-item"><Icon name="person" size={14} /> {game.developer}</span>
                 <span className="gd-meta-item"><Icon name="calendar_today" size={14} /> {game.releaseDate}</span>
-                <span className="gd-meta-item"><Icon name="star" size={14} style={{ color: '#f0a940' }} /> {avgRating} ({localReviews.length + game.reviews} reviews)</span>
+                <span className="gd-meta-item"><Icon name="star" size={14} style={{ color: '#f0a940' }} /> {avgRating} ({reviewCount} reviews)</span>
               </div>
               <div className="gd-tags">
                 {game.tags.map(t => <span key={t} className="tag">{t}</span>)}
@@ -109,24 +153,27 @@ export default function GameDetail() {
           <div className="gd-section panel">
             <h3>About This Game</h3>
             <p className="gd-description">{game.description}</p>
-            <div className="gd-screenshots">
-              {screenshotImages.map((src, index) => (
+            {screenshotImages.length > 0 && (
+              <div className="gd-screenshots">
+                {screenshotImages.map((src, index) => (
                 <button key={src} type="button" className="gd-screenshot" onClick={() => setPreviewImage(src)}>
                   <img src={src} alt={`${game.title} gameplay screenshot ${index + 1}`} className="gd-screenshot-img" />
                   <span className="gd-screenshot-zoom"><Icon name="zoom_in" size={18} /></span>
                 </button>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Reviews */}
           <div className="gd-section panel">
-            <h3>User Reviews <span className="review-count">({localReviews.length + game.reviews})</span></h3>
+            <h3>User Reviews <span className="review-count">({reviewCount})</span></h3>
+            {actionError && <div className="auth-error" style={{ marginBottom: 12 }}>{actionError}</div>}
             
             {user && owned && !submitted && (
               <form className="review-form" onSubmit={handleReviewSubmit}>
                 <div className="review-form-header">
-                  <div className="user-avatar-sm">{user.name[0]}</div>
+                  <div className="user-avatar-sm">{user.name?.[0] || '?'}</div>
                   <span>{user.name}</span>
                 </div>
                 <StarInput value={reviewRating} onChange={setReviewRating} />
@@ -184,8 +231,8 @@ export default function GameDetail() {
             
             <div className="gd-actions">
               {owned ? (
-                <button className="btn btn-success w-full" disabled>
-                  <Icon name="check" size={18} /> Already Owned
+                <button className="btn btn-success w-full" onClick={handleDownload}>
+                  <Icon name="download" size={18} /> Download
                 </button>
               ) : inCart ? (
                 <Link to="/cart" className="btn btn-primary w-full" style={{ justifyContent: 'center' }}>
