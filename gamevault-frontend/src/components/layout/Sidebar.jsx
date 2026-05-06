@@ -37,7 +37,7 @@ export default function Sidebar({ open }) {
         </div>
         <div className="sidebar-section">
           <div className="sidebar-heading">MANAGEMENT</div>
-          <NavItem to="/admin/stats" icon="bar_chart" label="Analytics" />
+          <NavItem to="/admin" icon="bar_chart" label="Analytics" />
         </div>
       </aside>
     );
