@@ -13,15 +13,16 @@ export default function Register() {
   const navigate = useNavigate();
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (form.password !== form.confirm) return setError('Passwords do not match.');
     if (form.password.length < 6) return setError('Password must be at least 6 characters.');
     setLoading(true);
-    register(form.name, form.email, form.password, form.role);
+    const result = await register(form.name, form.email, form.password, form.role);
     setLoading(false);
-    navigate('/');
+    if (result.success) navigate('/');
+    else setError(result.error);
   };
 
   return (

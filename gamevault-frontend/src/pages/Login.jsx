@@ -19,7 +19,7 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const result = login(email, password);
+    const result = await login(email, password);
     setLoading(false);
     if (result.success) navigate(from, { replace: true });
     else setError(result.error);
