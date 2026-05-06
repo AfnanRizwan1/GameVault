@@ -17,6 +17,7 @@ export default function Checkout() {
   const [payMethod, setPayMethod] = useState('card');
   const [cardNum, setCardNum] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState('');
 
   if (cart.length === 0 && step !== 3) {
     return (
@@ -30,11 +31,16 @@ export default function Checkout() {
   }
 
   const handlePurchase = async () => {
+    setError('');
     setProcessing(true);
-    await new Promise(r => setTimeout(r, 1500));
-    purchaseGames(cart.map(g => g.id));
-    setStep(3);
-    setProcessing(false);
+    try {
+      await purchaseGames(cart.map(g => g.id), payMethod);
+      setStep(3);
+    } catch (err) {
+      setError(err.message || 'Unable to complete checkout.');
+    } finally {
+      setProcessing(false);
+    }
   };
 
   if (step === 3) {
@@ -114,6 +120,7 @@ export default function Checkout() {
         <div className="checkout-summary">
           <div className="panel">
             <h2>Order Summary</h2>
+            {error && <div className="auth-error" style={{ marginBottom: 12 }}>{error}</div>}
             <div className="co-items">
               {cart.map(g => {
                 const colors = GENRE_COLORS[g.genre] || ['#4da6ff','#1a6dcc'];
