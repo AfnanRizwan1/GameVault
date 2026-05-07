@@ -24,12 +24,23 @@ fs.mkdirSync(path.join(uploadRoot, "games", "files"), { recursive: true });
 // Middleware
 const allowedOrigins = process.env.CLIENT_URL
   ? process.env.CLIENT_URL.split(",").map((origin) => origin.trim())
-  : true;
+  : null;
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: allowedOrigins
+      ? (origin, callback) => {
+          // allow requests with no origin (e.g. mobile apps, curl)
+          if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+          } else {
+            callback(new Error(`CORS: origin ${origin} not allowed`));
+          }
+        }
+      : true,
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.use(express.json({ limit: "10mb" }));
