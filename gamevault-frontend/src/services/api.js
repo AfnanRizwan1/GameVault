@@ -178,6 +178,35 @@ export const gamesApi = {
 
     if (!response.ok) {
       const payload = await response.json().catch(() => null);
+      // If no file is available on the server, generate a dummy file client-side
+      if (response.status === 404) {
+        const gameName = filename.replace(/\.[^.]+$/, '').replace(/-/g, ' ');
+        const dummyContent = [
+          `GameVault - ${gameName}`,
+          '='.repeat(40),
+          '',
+          'Thank you for downloading from GameVault!',
+          '',
+          `Game: ${gameName}`,
+          `Downloaded: ${new Date().toLocaleString()}`,
+          '',
+          'This is a demo download. The full game file will be',
+          'available once the developer uploads the game package.',
+          '',
+          'Enjoy your gaming experience!',
+          '- The GameVault Team',
+        ].join('\n');
+        const blob = new Blob([dummyContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename.replace(/\.[^.]+$/, '') + '.txt';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        return;
+      }
       throw new ApiError(payload?.message || 'Unable to download game', response.status, payload);
     }
 

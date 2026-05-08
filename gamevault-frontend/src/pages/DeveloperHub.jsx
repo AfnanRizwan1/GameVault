@@ -20,6 +20,10 @@ export default function DeveloperHub() {
   const [myGames, setMyGames] = useState([]);
   const [showUpload, setShowUpload] = useState(false);
   const [form, setForm] = useState({ title: '', genre: 'Action', price: '', description: '', tags: '' });
+  const [coverImageFile, setCoverImageFile] = useState(null);
+  const [coverImagePreview, setCoverImagePreview] = useState('');
+  const [screenshotFiles, setScreenshotFiles] = useState([]);
+  const [screenshotPreviews, setScreenshotPreviews] = useState([]);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
 
@@ -28,32 +32,58 @@ export default function DeveloperHub() {
   }, [games, studioName]);
 
   const totalDownloads = myGames.reduce((s, g) => s + g.downloads, 0);
-  const totalRevenue = myGames.reduce((s, g) => s + g.price * (g.downloads / 100), 0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
   const avgRating = myGames.length > 0 ? (myGames.reduce((s, g) => s + g.rating, 0) / myGames.length).toFixed(1) : '-';
+
+  useEffect(() => {
+    // Compute real revenue: sum of (price * totalSales) for this developer's games
+    const rev = myGames.reduce((s, g) => s + g.price * g.downloads, 0);
+    setTotalRevenue(rev);
+  }, [myGames]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
     try {
-      const data = await gamesApi.create({
-        title: form.title,
-        category: form.genre,
-        price: parseFloat(form.price) || 0,
-        description: form.description || `${form.title} is now available on GameVault.`,
-        tags: form.tags,
-        status: 'published',
-      });
+      const formData = new FormData();
+      formData.append('title', form.title);
+      formData.append('category', form.genre);
+      formData.append('price', parseFloat(form.price) || 0);
+      formData.append('description', form.description || `${form.title} is now available on GameVault.`);
+      formData.append('tags', form.tags);
+      formData.append('status', 'published');
+      if (coverImageFile) formData.append('coverImage', coverImageFile);
+      screenshotFiles.forEach(f => formData.append('screenshots', f));
+
+      const data = await gamesApi.create(formData);
 
       setMyGames(prev => [data.game, ...prev]);
       addGame(data.game);
       setShowUpload(false);
       setSubmitted(true);
       setForm({ title: '', genre: 'Action', price: '', description: '', tags: '' });
+      setCoverImageFile(null);
+      setCoverImagePreview('');
+      setScreenshotFiles([]);
+      setScreenshotPreviews([]);
       setTimeout(() => setSubmitted(false), 4000);
     } catch (err) {
       setError(err.message || 'Unable to publish game.');
     }
+  };
+
+  const handleCoverChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setCoverImageFile(file);
+    setCoverImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleScreenshotsChange = (e) => {
+    const files = Array.from(e.target.files).slice(0, 5);
+    setScreenshotFiles(files);
+    setScreenshotPreviews(files.map(f => URL.createObjectURL(f)));
   };
 
   return (
@@ -113,6 +143,22 @@ export default function DeveloperHub() {
                 <div className="form-row"><div className="form-group"><label className="form-label">Genre *</label><select className="form-control" value={form.genre} onChange={e => setForm(p => ({ ...p, genre: e.target.value }))}>{GENRES.map(g => <option key={g} value={g}>{g}</option>)}</select></div><div className="form-group"><label className="form-label">Price ($) *</label><input className="form-control" type="number" min="0" step="0.01" value={form.price} onChange={e => setForm(p => ({ ...p, price: e.target.value }))} placeholder="0 = Free" required /></div></div>
                 <div className="form-group"><label className="form-label">Description</label><textarea className="form-control" rows={3} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="Describe your game..." /></div>
                 <div className="form-group"><label className="form-label">Tags (comma-separated)</label><input className="form-control" value={form.tags} onChange={e => setForm(p => ({ ...p, tags: e.target.value }))} placeholder="Action, Multiplayer, Story-Rich..." /></div>
+                <div className="form-group">
+                  <label className="form-label">Cover Image</label>
+                  <input className="form-control" type="file" accept="image/*" onChange={handleCoverChange} />
+                  {coverImagePreview && <img src={coverImagePreview} alt="Cover preview" style={{ marginTop: 8, width: '100%', maxHeight: 160, objectFit: 'cover', borderRadius: 8 }} />}
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Screenshots (up to 5)</label>
+                  <input className="form-control" type="file" accept="image/*" multiple onChange={handleScreenshotsChange} />
+                  {screenshotPreviews.length > 0 && (
+                    <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                      {screenshotPreviews.map((src, i) => (
+                        <img key={i} src={src} alt={`Screenshot ${i + 1}`} style={{ width: 80, height: 50, objectFit: 'cover', borderRadius: 6 }} />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="modal-footer"><button type="button" className="btn btn-secondary" onClick={() => setShowUpload(false)}>Cancel</button><button type="submit" className="btn btn-primary"><Icon name="check" size={16} /> Publish Game</button></div>
             </form>

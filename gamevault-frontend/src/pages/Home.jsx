@@ -145,9 +145,13 @@ export default function Home() {
         {/* New Releases */}
         <section className="mb-6">
           <SectionHeader title="New Releases" iconName="bolt" linkTo="/store?filter=new" linkText="See All" />
-          <div className="games-grid">
-            {newGames.map(g => <GameCard key={g.id} game={g} />)}
-          </div>
+          {newGames.length > 0 ? (
+            <div className="games-grid">
+              {newGames.map(g => <GameCard key={g.id} game={g} />)}
+            </div>
+          ) : (
+            <p className="text-muted" style={{ padding: '16px 0' }}>No new releases yet. Check back soon!</p>
+          )}
         </section>
 
         {/* Top Sellers */}

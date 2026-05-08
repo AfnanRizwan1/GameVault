@@ -17,7 +17,18 @@ export default function Sidebar({ open }) {
   const isAdmin = user?.role === 'admin';
   const isDev = user?.role === 'developer';
 
-  const isActive = (path) => location.pathname === path || (path !== '/' && location.pathname.startsWith(path));
+  const isActive = (path) => {
+    const [pathname, search] = path.split('?');
+    if (search) {
+      // For links with query params, match both pathname and the specific query param
+      return location.pathname === pathname && location.search.includes(search);
+    }
+    if (pathname === '/store') {
+      // "All Games" is only active when on /store with no filter param
+      return location.pathname === '/store' && !location.search.includes('filter=');
+    }
+    return location.pathname === pathname || (pathname !== '/' && location.pathname.startsWith(pathname));
+  };
 
   const NavItem = ({ to, icon, label }) => (
     <Link to={to} className={`sidebar-item ${isActive(to) ? 'active' : ''}`}>

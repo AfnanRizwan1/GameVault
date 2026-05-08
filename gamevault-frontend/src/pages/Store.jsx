@@ -24,7 +24,7 @@ export default function Store() {
   const [search, setSearch] = useState(params.get('q') || '');
   const [selectedGenre, setSelectedGenre] = useState(params.get('genre') || '');
   const [sort, setSort] = useState('featured');
-  const [priceRange, setPriceRange] = useState([0, 60]);
+  const [priceRange, setPriceRange] = useState([0, 200]);
   const [showFreeOnly, setShowFreeOnly] = useState(params.get('filter') === 'free');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -37,6 +37,12 @@ export default function Store() {
     setSearch(searchFromUrl);
     setShowFreeOnly(filter === 'free');
   }, [genreFromUrl, searchFromUrl, filter]);
+
+  const maxPrice = useMemo(() => {
+    if (!catalog.length) return 200;
+    const highest = catalog.reduce((max, g) => g.price > max ? g.price : max, 0);
+    return Math.max(200, Math.ceil(highest / 10) * 10);
+  }, [catalog]);
 
   const handleGenreChange = (genre) => {
     setSelectedGenre(genre);
@@ -71,11 +77,13 @@ export default function Store() {
     // Genre
     if (selectedGenre) games = games.filter(g => g.genre === selectedGenre);
 
-    // Price
-    if (showFreeOnly) {
-      games = games.filter(g => g.price === 0);
-    } else {
-      games = games.filter(g => g.price >= priceRange[0] && g.price <= priceRange[1]);
+    // Price — only apply when not using a quick filter
+    if (!filter) {
+      if (showFreeOnly) {
+        games = games.filter(g => g.price === 0);
+      } else {
+        games = games.filter(g => g.price >= priceRange[0] && g.price <= priceRange[1]);
+      }
     }
 
     // Sort
@@ -99,14 +107,14 @@ export default function Store() {
 
   const activeFiltersCount = [
     search, selectedGenre, showFreeOnly,
-    priceRange[0] > 0 || priceRange[1] < 60
+    priceRange[0] > 0 || priceRange[1] < maxPrice
   ].filter(Boolean).length;
 
   const clearFilters = () => {
     setSearch('');
     setSelectedGenre('');
     setShowFreeOnly(false);
-    setPriceRange([0, 60]);
+    setPriceRange([0, maxPrice]);
     navigate('/store');
   };
 
@@ -188,7 +196,7 @@ export default function Store() {
                   <span>${priceRange[1]}</span>
                 </div>
                 <input
-                  type="range" min="0" max="60" step="1"
+                  type="range" min="0" max={maxPrice} step="1"
                   value={priceRange[1]}
                   onChange={e => setPriceRange([priceRange[0], +e.target.value])}
                   className="range-slider"
