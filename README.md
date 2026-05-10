@@ -5,7 +5,7 @@ A full-stack game store web application where customers can browse and purchase 
 **Live Demo:** [web-project-one-lyart.vercel.app](https://web-project-one-lyart.vercel.app)  
 **Backend API:** [web-project-eskq.onrender.com](https://web-project-eskq.onrender.com)
 
----
+---\
 
 ## Table of Contents
 
