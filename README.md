@@ -1,1165 +1,302 @@
-Alright — I’ve gone through **both your rubric + your full GameVault proposal**, and I’m going to be very direct with you:
+# GameVault 🎮
 
-👉 Your proposal is actually **very strong and already aligned ~80–85% with the rubric**.
-But if you just follow it blindly, you can still lose marks — because the **rubric is VERY specific about implementation details (security, validation, RBAC, etc.)**.
+A full-stack game store web application where customers can browse and purchase games, developers can publish and manage their titles, and admins can oversee the entire platform.
 
-So instead of just “start coding”, here’s the **smart way to approach this project so you maximize marks** 👇
-
----
-
-# 🧠 Step 1: Understand the Gap (MOST IMPORTANT)
-
-Your proposal = *features*
-Rubric = *evaluation criteria*
-
-You don’t get marks for “having a feature”…
-You get marks for **how correctly and securely it’s implemented**.
-
-### Example:
-
-* Proposal: “Login system”
-* Rubric:
-
-  * Password hashing ✅
-  * Secure comparison ✅
-  * Session handling ✅
-  * Reset flow ✅
-
-👉 If you miss even one → you lose marks.
+**Live Demo:** [web-project-one-lyart.vercel.app](https://web-project-one-lyart.vercel.app)  
+**Backend API:** [web-project-eskq.onrender.com](https://web-project-eskq.onrender.com)
 
 ---
 
-# 🧩 Step 2: Map Proposal → Rubric (What You MUST Ensure)
+## Table of Contents
 
-I’ll translate your entire project into **what actually matters for grading**:
-
----
-
-## 🔐 1. Authentication (HIGH PRIORITY)
-
-From rubric:
-
-* Password hashing (bcrypt) ✅
-* No plaintext passwords ❌ (STRICT)
-* Secure login comparison ✅
-* Session/JWT handling ✅
-* Password reset (token-based) ⚠️ (you didn’t include this — ADD IT)
-
-👉 Action:
-
-* Use `bcrypt`
-* Use `jsonwebtoken`
-* Add **forgot password feature** (even basic)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Environment Variables](#environment-variables)
+- [API Reference](#api-reference)
+- [User Roles](#user-roles)
+- [Screenshots](#screenshots)
 
 ---
 
-## 👥 2. Role-Based Access Control (CRITICAL)
+## Features
 
-Your proposal already has:
+### Customer
+- Browse and search the game store with filters (genre, price, sort)
+- View detailed game pages with screenshots and reviews
+- Add games to cart and checkout (mock payment)
+- Access purchased games in a personal library
+- Download owned games
+- Leave star ratings and written reviews on owned games
 
-* customer
-* developer
-* admin 
+### Developer
+- Publish new games with cover image and screenshots
+- Manage (edit/delete) their own published titles
+- View per-game stats: downloads, ratings, reviews
+- Track estimated revenue from sales
 
-Rubric requires:
+### Admin
+- Full dashboard with platform-wide stats (users, games, orders, revenue)
+- Manage all users: create, edit, change roles, delete
+- Manage all games: create, edit, delete
+- View top-selling games and genre breakdown
 
-* Admin-only routes
-* Middleware protection
-* Dynamic frontend UI
+### General
+- JWT-based authentication with role-based access control
+- Passwords hashed with bcrypt — never stored in plaintext
+- Server-side and client-side input validation
+- Responsive UI that works on desktop and mobile
+- New Releases, Top Sellers, and Free to Play sections on the home page
 
-👉 Action:
+---
 
-* Create middleware:
+## Tech Stack
 
-```js
-authorizeRoles('admin')
+### Frontend
+| Technology | Purpose |
+|---|---|
+| React 18 + Vite | UI framework and build tool |
+| React Router v6 | Client-side routing |
+| React Icons | Icon library |
+| Fetch API | HTTP requests to backend |
+
+### Backend
+| Technology | Purpose |
+|---|---|
+| Node.js + Express 5 | REST API server |
+| MongoDB + Mongoose | Database and ODM |
+| bcryptjs | Password hashing |
+| jsonwebtoken | JWT authentication |
+| multer | File uploads (cover images, screenshots) |
+| express-validator | Server-side input validation |
+| dotenv | Environment variable management |
+| cors | Cross-origin request handling |
+
+### Deployment
+| Service | Purpose |
+|---|---|
+| Vercel | Frontend hosting |
+| Render | Backend hosting |
+| MongoDB Atlas | Cloud database |
+
+---
+
+## Project Structure
+
 ```
-
-* Protect routes like:
-
-```
-/api/admin/*
-```
-
-* Frontend:
-* Admin sees dashboard
-* User doesn’t
-
----
-
-## 🧾 3. CRUD + Data Processing
-
-You already have:
-
-* Games
-* Orders
-* Reviews 
-
-👉 Action:
-Make sure:
-
-* CREATE works
-* READ works
-* UPDATE works
-* DELETE works
-
-Because rubric explicitly checks CRUD.
-
----
-
-## 🧪 4. Validation (VERY COMMON MARK LOSS)
-
-Rubric requires:
-
-* Client-side validation
-* Server-side validation
-* Error messages
-
-👉 Action:
-
-Frontend:
-
-* Required fields
-* Email format
-* Password strength
-
-Backend:
-
-* Use `express-validator`
-
-Example:
-
-```js
-check('email').isEmail()
-check('password').isLength({ min: 6 })
+├── gamevault-frontend/
+│   ├── public/
+│   │   └── images/          # Static game images and screenshots
+│   └── src/
+│       ├── components/
+│       │   ├── layout/      # Navbar, Sidebar, Footer
+│       │   └── ui/          # GameCard, Icon, reusable components
+│       ├── context/
+│       │   ├── AuthContext.jsx   # Auth state, cart, library
+│       │   └── GameContext.jsx   # Global games list
+│       ├── pages/
+│       │   ├── admin/       # AdminDashboard, AdminGames, AdminUsers
+│       │   ├── Home.jsx
+│       │   ├── Store.jsx
+│       │   ├── GameDetail.jsx
+│       │   ├── Cart.jsx
+│       │   ├── Checkout.jsx
+│       │   ├── Library.jsx
+│       │   ├── Login.jsx
+│       │   ├── Register.jsx
+│       │   ├── Profile.jsx
+│       │   └── DeveloperHub.jsx
+│       └── services/
+│           └── api.js       # All API calls and data normalizers
+│
+└── gamevault-backend/
+    ├── config/
+    │   └── db.js            # MongoDB connection
+    ├── controllers/         # Business logic
+    ├── middleware/
+    │   ├── authMiddleware.js    # JWT verification
+    │   ├── roleMiddleware.js    # Role-based access control
+    │   └── errorMiddleware.js   # Global error handler
+    ├── models/
+    │   ├── User.js
+    │   ├── Game.js
+    │   ├── Order.js
+    │   └── Review.js
+    ├── routes/              # Express route definitions
+    ├── scripts/
+    │   └── seed.js          # Database seeder
+    ├── uploads/             # Uploaded game images and files
+    └── server.js            # Entry point
 ```
 
 ---
 
-## 🧭 5. Navigation & UI Structure
+## Getting Started
 
-Rubric checks:
+### Prerequisites
 
-* Navbar on every page
-* No broken links
-* Logical pages
+- Node.js 18+
+- A [MongoDB Atlas](https://cloud.mongodb.com) account (free tier works)
+- Git
 
-👉 Required Pages:
+### 1. Clone the repository
 
-* Home
-* Store
-* Game Detail
-* Login/Register
-* Cart
-* Dashboard
-* Admin Panel
-
----
-
-## 🎨 6. UI/UX (FREE MARKS IF DONE WELL)
-
-Rubric gives LOTS of marks here:
-
-* Consistent design
-* Responsive
-* Animations
-
-👉 Action:
-
-* Use Tailwind properly
-* Add:
-
-  * hover effects
-  * transitions
-  * loading spinners
-
----
-
-## 🔑 7. Session Management
-
-Rubric:
-
-* Login/logout works
-* Sessions expire
-
-👉 Action:
-
-* Use JWT with expiry:
-
-```js
-jwt.sign(payload, secret, { expiresIn: '1h' })
+```bash
+git clone <your-repo-url>
+cd <repo-folder>
 ```
 
----
+### 2. Set up the backend
 
-## 🧠 8. Git (DON’T IGNORE THIS)
-
-Rubric:
-
-* 10+ commits
-* Meaningful messages
-
-👉 DO THIS:
-
-```
-feat: add login API
-fix: resolve auth bug
+```bash
+cd gamevault-backend
+npm install
 ```
 
----
+Create a `.env` file (see [Environment Variables](#environment-variables) below), then:
 
-## 📦 9. Performance
+```bash
+# Seed the database with sample games (optional but recommended)
+npm run seed
 
-* Optimize images
-* Avoid unnecessary API calls
-
-👉 Easy marks.
-
----
-
-## 📄 10. Documentation
-
-Rubric:
-
-* README required
-* Demo required
-
-👉 You already asked about this before — good.
-
----
-
-# 🚀 Step 3: How You Should ACTUALLY Start (Practical Plan)
-
-Forget week-by-week for a second. Do this:
-
----
-
-## 🔥 Phase 1 (Day 1–3): Setup EVERYTHING
-
-* GitHub repo ✅
-* Clone locally ✅
-* Backend init (Express) ✅
-* Frontend init (React) ✅
-* MongoDB setup ✅
-
----
-
-## 🔥 Phase 2 (Day 4–7): AUTH FIRST
-
-Why?
-Because EVERYTHING depends on it.
-
-Build:
-
-* Register
-* Login
-* JWT
-* Roles
-* Middleware
-
-👉 Test in Postman
-
----
-
-## 🔥 Phase 3: Core Models
-
-Create:
-
-* User
-* Game
-* Order
-* Review
-
----
-
-## 🔥 Phase 4: ONE COMPLETE FLOW
-
-Don’t build everything randomly.
-
-👉 Build this full flow FIRST:
-
-1. User registers
-2. Logs in
-3. Views games
-4. Adds to cart
-5. Checkout
-6. Sees in library
-
-If this works → your backbone is DONE.
-
----
-
-## 🔥 Phase 5: Add Advanced Features
-
-* Reviews
-* Developer upload
-* Admin panel
-
----
-
-## 🔥 Phase 6: Polish for Rubric
-
-This is where most students fail.
-
-Go line-by-line in rubric and check:
-
-* ✔ Done?
-* ✔ Secure?
-* ✔ Tested?
-
----
-
-# ⚠️ Biggest Mistakes to Avoid
-
-I’ll save you here:
-
-### ❌ 1. Building frontend first
-
-→ You’ll get stuck
-
-### ❌ 2. Ignoring backend validation
-
-→ You lose marks
-
-### ❌ 3. Skipping RBAC
-
-→ BIG mark loss
-
-### ❌ 4. No proper commits
-
-→ Easy marks gone
-
-### ❌ 5. Leaving testing till end
-
-→ Disaster
-
----
-
-# 🧩 Final Strategy (Simple)
-
-👉 Build in this order:
-
-1. Auth (JWT + roles)
-2. Games (CRUD)
-3. Cart + Orders
-4. Library
-5. Reviews
-6. Admin panel
-7. UI polish + validation
-8. Documentation
-
----
-
-# 💬 If you want next step
-
-I can now:
-
-* Break this into **exact daily tasks**
-* OR help you **start backend step-by-step (commands + code)**
-* OR design your **database + folder structure cleanly**
-
-Just tell me:
-👉 *“start backend”* or *“give me daily plan”*
-
---------------------------------------------------------------------------------------------------------------------------------------
-
-Alright — with a **deadline of May 10**, you don’t have the luxury of following the original 8–10 week plan. You need a **compressed, high-efficiency execution strategy**.
-
-I’m going to give you a **realistic, no-BS plan** that prioritizes:
-
-* ✅ Rubric marks
-* ✅ Working product
-* ❌ Not perfection / overengineering
-
----
-
-# ⚠️ First: Reality Check
-
-You have roughly **~9–10 days max**.
-
-Your proposal is **big (Steam-like app)** — you CANNOT build everything fully.
-
-👉 So your strategy should be:
-
-> **“Implement ALL rubric requirements, but SIMPLIFY features internally.”**
-
-Example:
-
-* Mock payments → simple success response ✅
-* File downloads → basic file serving ✅
-* Admin panel → minimal but functional ✅
-
----
-
-# 🧠 Core Strategy (IMPORTANT)
-
-Split work like this:
-
-### 👨‍💻 Person 1 (Backend Focus)
-
-* Auth + Security
-* APIs (Games, Cart, Orders, Reviews)
-* RBAC
-* Database
-
-### 🎨 Person 2 (Frontend Focus)
-
-* UI + Pages
-* Forms + Validation
-* API integration
-* UX + responsiveness
-
-👉 BOTH:
-
-* Testing
-* Git commits
-* Final polish
-
----
-
-# 📅 ULTRA-COMPRESSED PLAN (DAY-BY-DAY)
-
-## 🔥 DAY 1 (TODAY): Setup + Auth Skeleton
-
-### BOTH:
-
-* Setup repo + clone
-* Setup backend + frontend
-* Setup MongoDB
-
-### Backend:
-
-* Express server
-* User model
-* Register API
-* Login API
-* bcrypt + JWT
-
-### Frontend:
-
-* React setup
-* Login/Register UI
-* Basic routing
-
-👉 Goal:
-✔ User can register & login
-
----
-
-## 🔥 DAY 2: Auth Complete + RBAC
-
-### Backend:
-
-* JWT middleware
-* Role system (customer/dev/admin)
-* Protected routes
-
-### Frontend:
-
-* Auth context
-* Store token
-* Protected routes
-
-👉 Goal:
-✔ Login persists
-✔ Roles working
-
----
-
-## 🔥 DAY 3: Games (CORE FEATURE)
-
-### Backend:
-
-* Game model
-* CRUD APIs
-* Search + filter (basic)
-
-### Frontend:
-
-* Game listing page
-* Game card UI
-* Game detail page
-
-👉 Goal:
-✔ Games visible on frontend
-
----
-
-## 🔥 DAY 4: Developer Features
-
-### Backend:
-
-* Upload game (Multer)
-* Update/delete
-
-### Frontend:
-
-* Upload form
-* Developer dashboard
-
-👉 Keep file upload SIMPLE (don’t overcomplicate)
-
----
-
-## 🔥 DAY 5: Cart + Checkout (VERY IMPORTANT)
-
-### Backend:
-
-* Cart APIs
-* Order model
-* Checkout endpoint (mock)
-
-### Frontend:
-
-* Cart page
-* Checkout page
-
-👉 Goal:
-✔ Full purchase flow works
-
----
-
-## 🔥 DAY 6: Library + Reviews
-
-### Backend:
-
-* Library endpoint
-* Review model + APIs
-
-### Frontend:
-
-* Library page
-* Review UI
-
-👉 Goal:
-✔ User sees purchased games
-✔ Can review
-
----
-
-## 🔥 DAY 7: Admin Panel (RUBRIC HEAVY)
-
-### Backend:
-
-* Admin routes
-* Get users/games
-
-### Frontend:
-
-* Admin dashboard
-* Tables (users/games)
-
-👉 KEEP SIMPLE → table is enough
-
----
-
-## 🔥 DAY 8: VALIDATION + SECURITY + UI
-
-This is where marks are won.
-
-### Add:
-
-* Client-side validation
-* Server validation
-* Error messages
-* Password hashing check
-* Route protection
-
-### UI:
-
-* Navbar
-* Footer
-* Responsive design
-
----
-
-## 🔥 DAY 9: TESTING + BUG FIXING
-
-Go through rubric line-by-line:
-
-* Auth ✔
-* RBAC ✔
-* CRUD ✔
-* Validation ✔
-* UI ✔
-
-Fix EVERYTHING.
-
----
-
-## 🔥 DAY 10: FINAL TOUCH
-
-* README
-* Screenshots
-* Demo prep
-* Clean UI
-
----
-
-# 🧩 What You MUST NOT Skip (Rubric Killers)
-
-These are **high-weight items**:
-
-### 🔐 Security
-
-* bcrypt hashing
-* NO plaintext passwords
-* JWT auth
-
-### 👥 RBAC
-
-* Admin vs user
-* Protected routes
-
-### 🧪 Validation
-
-* Client + server BOTH
-
-### 🧭 Navigation
-
-* Working navbar everywhere
-
-### 📱 Responsiveness
-
-* Mobile view must work
-
----
-
-# ⚡ Efficiency Tricks (VERY IMPORTANT)
-
-### ✅ 1. Don’t build fancy UI early
-
-→ Functionality first
-
-### ✅ 2. Use simple components
-
-→ Cards, tables, forms
-
-### ✅ 3. Reuse components
-
-→ Don’t duplicate code
-
-### ✅ 4. Use Postman FIRST
-
-→ Test backend before frontend
-
----
-
-# 🧠 Smart Feature Simplifications
-
-| Feature  | Simplify Like This |
-| -------- | ------------------ |
-| Payment  | Always success     |
-| Download | Basic file link    |
-| Stats    | Count from DB      |
-| Reviews  | No fancy sorting   |
-
----
-
-# 🔥 Daily Workflow (HOW to actually work)
-
-Each day:
-
-1. Backend builds API
-2. Frontend connects it
-3. Test immediately
-
-👉 NOT:
-“Backend finishes everything first” ❌
-
----
-
-# 💬 If you want next
-
-I can now:
-
-* Give you **exact folder structure (frontend + backend)**
-* OR help you **start Day 1 with exact commands + code**
-* OR divide tasks **between you and your teammate clearly**
-
-Just tell me:
-👉 *“start day 1 step-by-step”*
-
---------------------------------------------------------------------------------------------------------------------------------------
-
-Good question — and this is actually a **critical decision**, because with your deadline, the *wrong stack will slow you down hard*.
-
-I’m not going to give you 5 options — I’ll give you **one stack you should use** based on:
-
-* ⏱️ time constraint
-* 📊 rubric requirements
-* 🧠 your current skill level (from your previous work)
-
----
-
-# ✅ FINAL STACK (USE THIS — don’t overthink)
-
-## 🎨 Frontend
-
-* **React.js (Vite)**
-* **React Router**
-* **Axios**
-* **TailwindCSS**
-
-👉 Why:
-
-* Fast to build UI
-* Easy routing
-* Tailwind = quick styling (important for deadline)
-
----
-
-## ⚙️ Backend
-
-* **Node.js**
-* **Express.js**
-
-👉 Why:
-
-* You already have JS experience
-* Fast to build APIs
-* Huge ecosystem
-
----
-
-## 🗄️ Database
-
-* **MongoDB (Atlas)**
-* **Mongoose**
-
-👉 Why:
-
-* Flexible schema (your project has many entities)
-* Faster development than SQL for this type
-
----
-
-## 🔐 Authentication & Security
-
-* **JWT (jsonwebtoken)**
-* **bcryptjs**
-
-👉 Covers rubric:
-
-* Password hashing ✅
-* Secure auth ✅
-
----
-
-## 📁 File Uploads
-
-* **Multer (local storage)**
-
-👉 Keep it simple:
-
-* Don’t go AWS/S3 — waste of time
-
----
-
-## ✅ Validation
-
-* **express-validator (backend)**
-* Basic JS validation (frontend)
-
----
-
-## 🧰 Dev Tools
-
-* **Postman** → test APIs
-* **VS Code**
-* **Git + GitHub**
-
----
-
-## 🚀 Deployment (optional but recommended)
-
-* **Frontend:** Vercel
-* **Backend:** Render / Railway
-* **DB:** MongoDB Atlas
-
----
-
-# 🧠 Why THIS stack is perfect for YOU
-
-Let me be blunt:
-
-### ❌ Don’t use:
-
-* Next.js → overkill + time waste
-* Django → slower if you’re JS-based
-* Firebase → messy for RBAC + backend logic
-* SQL → more setup + joins
-
----
-
-### ✅ This stack gives you:
-
-| Requirement | Covered? |
-| ----------- | -------- |
-| Auth system | ✅        |
-| RBAC        | ✅        |
-| CRUD        | ✅        |
-| File upload | ✅        |
-| Validation  | ✅        |
-| Performance | ✅        |
-| UI/UX       | ✅        |
-
----
-
-# ⚡ Folder Structure (Quick Preview)
-
-## Backend:
-
-```
-backend/
-├── models/
-├── routes/
-├── controllers/
-├── middleware/
-├── config/
-└── server.js
+# Start the development server
+npm run dev
 ```
 
-## Frontend:
+The backend runs on `http://localhost:5000`.
 
-```
-frontend/
-├── src/
-│   ├── pages/
-│   ├── components/
-│   ├── context/
-│   ├── services/
-│   └── App.jsx
+### 3. Set up the frontend
+
+```bash
+cd gamevault-frontend
+npm install
 ```
 
----
+Create a `.env` file:
 
-# ⚠️ Important Rule
+```env
+VITE_API_URL=http://localhost:5000/api
+```
 
-👉 **Do NOT change stack mid-project.**
+Then:
 
-That’s how teams fail.
+```bash
+npm run dev
+```
 
----
-
-# 💬 Next step
-
-If you're ready, I can:
-
-* 🔥 Set up your **Day 1 project (commands + exact code)**
-* 📂 Give you **ready-made backend starter template**
-* 👥 Split tasks between you and your teammate clearly
-
-Just say:
-👉 *“start setup”*
-
--------------------------------------------------------------------------------------------------------------------------------------
-
-Good — this is exactly the right thing to do before coding.
-
-But I’m going to tweak your mindset slightly:
-
-👉 Don’t think “what features we *can* build”
-👉 Think “what features we *must* build to maximize marks”
-
-So below is a **clean, optimized feature list** — derived from:
-
-* your proposal ✅
-* the rubric ✅
-* your time constraint ✅
+The frontend runs on `http://localhost:5173`.
 
 ---
 
-# 🚀 FINAL FEATURE LIST (OPTIMIZED FOR MARKS)
+## Environment Variables
 
-I’ve grouped this so you can **directly map it to implementation**.
+### Backend — `gamevault-backend/.env`
 
----
+| Variable | Description | Example |
+|---|---|---|
+| `PORT` | Port the server listens on | `5000` |
+| `MONGO_URI` | MongoDB connection string | `mongodb+srv://user:pass@cluster.mongodb.net/gamevault` |
+| `JWT_SECRET` | Secret key for signing JWTs | `a_long_random_string` |
+| `JWT_EXPIRE` | JWT expiry duration | `7d` |
+| `CLIENT_URL` | Allowed frontend origin for CORS | `https://your-app.vercel.app` |
 
-# 🔐 1. Authentication & Security (HIGH PRIORITY)
+### Frontend — `gamevault-frontend/.env`
 
-### MUST IMPLEMENT:
-
-* User Registration
-* User Login
-* Logout
-* JWT-based authentication
-* Password hashing using bcrypt
-* Secure password comparison
-* Session handling (token-based)
-* Basic password reset (token or mock)
-
-### IMPORTANT (for rubric):
-
-* ❌ No plaintext passwords stored
-* ✅ Token expiry
+| Variable | Description | Example |
+|---|---|---|
+| `VITE_API_URL` | Base URL of the backend API | `https://your-backend.onrender.com/api` |
 
 ---
 
-# 👥 2. Role-Based Access Control (CRITICAL)
+## API Reference
 
-### Roles:
+All endpoints are prefixed with `/api`.
 
-* Customer
-* Developer
-* Admin
+### Auth — `/api/auth`
 
-### Features:
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/auth/register` | Public | Register a new user |
+| POST | `/auth/login` | Public | Login and receive JWT |
+| GET | `/auth/me` | Required | Get current user profile |
+| PUT | `/auth/profile` | Required | Update profile |
 
-* Role stored in database
-* Protected backend routes (middleware)
-* Admin-only routes
-* Developer-only routes
+### Games — `/api/games`
 
-### Frontend:
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/games` | Public | List games (supports `search`, `category`, `sort`, `page`, `limit`) |
+| GET | `/games/:id` | Public | Get a single game |
+| GET | `/games/:id/reviews` | Public | Get reviews for a game |
+| GET | `/games/:id/download` | Required | Download an owned game |
+| POST | `/games` | Developer | Publish a new game (multipart/form-data) |
+| PUT | `/games/:id` | Developer | Update own game |
+| DELETE | `/games/:id` | Developer | Delete own game |
 
-* Navbar changes based on role
-* Admin dashboard visible only to admin
-* Unauthorized access blocked (403 behavior)
+### Orders — `/api/orders`
 
----
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/orders/cart` | Required | Get current cart |
+| POST | `/orders/cart` | Required | Add game to cart |
+| DELETE | `/orders/cart/:gameId` | Required | Remove game from cart |
+| DELETE | `/orders/cart` | Required | Clear entire cart |
+| POST | `/orders/checkout` | Required | Checkout and create order |
+| GET | `/orders/library` | Required | Get user's game library |
+| GET | `/orders` | Required | Get user's order history |
 
-# 🧾 3. Core Data Features (CRUD)
+### Reviews — `/api/reviews`
 
-### Users:
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/reviews` | Required | Create a review |
+| PUT | `/reviews/:id` | Required | Update own review |
+| DELETE | `/reviews/:id` | Required | Delete own review |
 
-* View profile
-* Update profile
+### Admin — `/api/admin`
 
-### Games:
+All admin routes require authentication and the `admin` role.
 
-* Create (developer)
-* Read (all users)
-* Update (developer - own games)
-* Delete (developer - own games)
-
-### Reviews:
-
-* Add review
-* Edit review
-* Delete review
-
----
-
-# 🎮 4. Game Store (CORE FEATURE)
-
-### Features:
-
-* Browse all games
-* Game detail page
-* Search by title
-* Filter by category
-* Filter by price
-* Sort (price / newest)
-* Pagination (simple)
-
----
-
-# 🛒 5. Shopping Cart & Checkout
-
-### Features:
-
-* Add to cart
-* Remove from cart
-* View cart
-* Cart total calculation
-* Mock checkout (no real payment)
-* Order creation
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/admin/stats` | Platform stats (users, games, orders, revenue) |
+| GET | `/admin/users` | List all users |
+| POST | `/admin/users` | Create a user |
+| PUT | `/admin/users/:id` | Update a user |
+| DELETE | `/admin/users/:id` | Delete a user |
+| GET | `/admin/games` | List all games |
+| POST | `/admin/games` | Create a game |
+| PUT | `/admin/games/:id` | Update a game |
+| DELETE | `/admin/games/:id` | Delete a game |
 
 ---
 
-# 📦 6. User Library
+## User Roles
 
-### Features:
+| Role | Capabilities |
+|---|---|
+| `customer` | Browse store, purchase games, leave reviews, manage cart and library |
+| `developer` | All customer capabilities + publish and manage own games via Developer Hub |
+| `admin` | Full platform access — manage all users, games, and view analytics |
 
-* View purchased games
-* Download button (basic file access)
-* Only show owned games
-
----
-
-# ⭐ 7. Reviews & Ratings
-
-### Features:
-
-* Add review (only if purchased)
-* Rating (1–5 stars)
-* View reviews
-* Average rating display
+To register as a developer or admin, set the `role` field in the register request body. By default, new accounts are created as `customer`.
 
 ---
 
-# 👨‍💻 8. Developer Dashboard
+## Screenshots
 
-### Features:
-
-* Upload game (title, price, file, image)
-* View own games
-* Edit game
-* Delete game
-
-👉 Keep UI simple (forms + table)
+| | |
+|---|---|
+| ![Home](demo/web1.jpg) | ![Store](demo/web2.jpg) |
+| ![Game Detail](demo/web3.jpg) | ![Cart](demo/web4.jpg) |
+| ![Library](demo/web5.jpg) | ![Developer Hub](demo/web6.jpg) |
+| ![Admin Dashboard](demo/web7.jpg) | ![Admin Users](demo/web8.jpg) |
 
 ---
 
-# 🛠️ 9. Admin Panel (RUBRIC HEAVY)
+## Deployment Notes
 
-### Features:
-
-* View all users
-* View all games
-* Change user roles (optional but good)
-* Basic stats (total users/games/orders)
-
----
-
-# 🧪 10. Validation (VERY IMPORTANT)
-
-### Client-side:
-
-* Required fields
-* Email format
-* Password strength
-
-### Server-side:
-
-* Input validation
-* Sanitization
-
-### UI:
-
-* Inline error messages
-
----
-
-# 🧭 11. Navigation & Structure
-
-### Required:
-
-* Navbar on ALL pages
-* Working routes (no broken links)
-* Pages:
-
-  * Home
-  * Store
-  * Game Detail
-  * Cart
-  * Login/Register
-  * Profile
-  * Dashboard(s)
-
----
-
-# 🎨 12. UI / UX Design
-
-### Must include:
-
-* Consistent layout (colors/fonts)
-* Responsive design (mobile + desktop)
-* Cards for games
-* Clean spacing
-
-### Bonus (easy marks):
-
-* Hover effects
-* Transitions
-* Loading indicators
-
----
-
-# 🔑 13. Session Management
-
-### Features:
-
-* Login persists
-* Logout clears session
-* Token expiration
-
----
-
-# 🧰 14. Git Version Control
-
-### MUST:
-
-* GitHub repo
-* 10+ commits
-* Meaningful commit messages
-
----
-
-# 🦶 15. Footer
-
-### Include:
-
-* Contact info
-* Social links (fake is fine)
-* Copyright
-
----
-
-# 🎯 16. Content & Creativity
-
-### Include:
-
-* Game descriptions
-* Images/screenshots
-* Unique branding (GameVault theme)
-
----
-
-# ⚡ 17. Performance
-
-### Do:
-
-* Optimize images
-* Avoid unnecessary API calls
-
----
-
-# 📄 18. Documentation
-
-### MUST:
-
-* README file
-* Setup instructions
-* Features list
-
----
-
-# ❌ WHAT YOU SHOULD SKIP (TIME WASTERS)
-
-Don’t implement:
-
-* Real payments ❌
-* Advanced analytics ❌
-* Chat/social features ❌
-* Complex recommendation system ❌
-* Fancy animations ❌
-
----
-
-# 🧠 FINAL PRIORITY ORDER
-
-If you run out of time, follow THIS:
-
-1. Auth + RBAC
-2. Game CRUD
-3. Cart + Checkout
-4. Library
-5. Reviews
-6. Admin Panel
-7. UI polish
-
----
-
-# 💬 If you want next
-
-I can now:
-
-* Turn this into a **task checklist for you + your teammate**
-* OR give you a **Notion/Trello board structure**
-* OR start **coding backend with you step-by-step**
-
-Just say:
-👉 *“divide tasks between 2 people”*
- 
+- **File uploads** (cover images, screenshots) are stored on the server filesystem. On Render's free tier the filesystem is ephemeral — uploaded files will not persist across restarts. For production use, migrate uploads to a cloud storage service such as Cloudinary or AWS S3.
+- **Render free tier** spins down after 15 minutes of inactivity. The first request after a sleep period may take 30–60 seconds to respond while the server wakes up.
+- After deploying the frontend to Vercel, set `CLIENT_URL` in your Render environment variables to the Vercel URL and redeploy the backend so CORS is configured correctly.
