@@ -28,7 +28,7 @@ export default function Login() {
   const demoAccounts = [
     { label: 'Customer', email: 'user@gamevault.com', pw: 'password123' },
     { label: 'Developer', email: 'dev@gamevault.com', pw: 'password123' },
-    { label: 'Admin', email: 'admin@gamevault.com', pw: 'password123' },
+    { label: 'Admin', email: 'admin@gamevault.com', pw: '' },
   ];
 
   return (
@@ -64,7 +64,7 @@ export default function Login() {
         <div className="auth-divider"><span>Quick demo access</span></div>
         <div className="demo-accounts">
           {demoAccounts.map(a => (
-            <button key={a.label} className="demo-btn" onClick={() => { setEmail(a.email); setPassword(a.pw); }}>
+            <button key={a.label} className="demo-btn" onClick={() => { setEmail(a.email); if (a.pw) setPassword(a.pw); else setPassword(''); }}>
               <span className="demo-role">{a.label}</span>
               <span className="demo-email">{a.email}</span>
             </button>
