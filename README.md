@@ -200,6 +200,9 @@ The frontend runs on `http://localhost:5173`.
 | `JWT_SECRET` | Secret key for signing JWTs | `a_long_random_string` |
 | `JWT_EXPIRE` | JWT expiry duration | `7d` |
 | `CLIENT_URL` | Allowed frontend origin for CORS | `https://your-app.vercel.app` |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name | `your_cloud_name` |
+| `CLOUDINARY_API_KEY` | Cloudinary API key | `123456789012345` |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret | `your_api_secret` |
 
 ### Frontend — `gamevault-frontend/.env`
 
