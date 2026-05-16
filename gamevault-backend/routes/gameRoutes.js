@@ -18,7 +18,7 @@ import { gameImageStorage } from "../config/cloudinary.js";
 
 const router = express.Router();
 
-// Use Cloudinary storage for images; fall back to disk for game files
+// Disk storage for game files only
 const diskStorage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     const uploadDir = path.join(process.cwd(), "uploads", "games", "files");
@@ -34,32 +34,37 @@ const diskStorage = multer.diskStorage({
   },
 });
 
-const imageFields = ["coverImage", "image", "screenshots"];
+// Single custom storage engine that delegates to Cloudinary or disk
+const imageFieldNames = ["coverImage", "image", "screenshots"];
 
-const dynamicStorage = multer.diskStorage({});
-
-// Separate multer instances: Cloudinary for images, disk for game files
-const uploadImages = multer({
-  storage: gameImageStorage,
-  limits: { fileSize: 1024 * 1024 * 10, files: 8 },
-});
-
-const uploadGameFile = multer({
-  storage: diskStorage,
-  limits: { fileSize: 1024 * 1024 * 250, files: 1 },
-});
-
-// Combined middleware: images → Cloudinary, gameFile → disk
-const uploadFields = (req, res, next) => {
-  uploadImages.fields([
-    { name: "coverImage", maxCount: 1 },
-    { name: "image", maxCount: 1 },
-    { name: "screenshots", maxCount: 6 },
-  ])(req, res, (err) => {
-    if (err) return next(err);
-    uploadGameFile.fields([{ name: "gameFile", maxCount: 1 }])(req, res, next);
-  });
+const hybridStorage = {
+  _handleFile(req, file, cb) {
+    if (imageFieldNames.includes(file.fieldname)) {
+      gameImageStorage._handleFile(req, file, cb);
+    } else {
+      diskStorage._handleFile(req, file, cb);
+    }
+  },
+  _removeFile(req, file, cb) {
+    if (imageFieldNames.includes(file.fieldname)) {
+      gameImageStorage._removeFile(req, file, cb);
+    } else {
+      diskStorage._removeFile(req, file, cb);
+    }
+  },
 };
+
+const upload = multer({
+  storage: hybridStorage,
+  limits: { fileSize: 1024 * 1024 * 250, files: 10 },
+});
+
+const uploadFields = upload.fields([
+  { name: "coverImage", maxCount: 1 },
+  { name: "image", maxCount: 1 },
+  { name: "screenshots", maxCount: 6 },
+  { name: "gameFile", maxCount: 1 },
+]);
 
 const createGameValidation = [
   body("title").trim().notEmpty().withMessage("Game title is required"),
