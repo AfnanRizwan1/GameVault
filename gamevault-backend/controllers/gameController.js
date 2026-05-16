@@ -15,8 +15,15 @@ const validationMessage = (req) => {
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 const relativeUploadPath = (file) => path.relative(process.cwd(), file.path).replace(/\\/g, "/");
-const publicUploadPath = (file) => `/${relativeUploadPath(file)}`;
-const storedUploadPath = (file) => relativeUploadPath(file);
+const publicUploadPath = (file) => {
+  // Cloudinary returns a full https:// URL in file.path
+  if (file.path && file.path.startsWith("http")) return file.path;
+  return `/${relativeUploadPath(file)}`;
+};
+const storedUploadPath = (file) => {
+  if (file.path && file.path.startsWith("http")) return file.path;
+  return relativeUploadPath(file);
+};
 
 const parseList = (value) => {
   if (!value) return [];

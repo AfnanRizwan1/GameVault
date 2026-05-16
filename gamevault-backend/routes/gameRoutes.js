@@ -14,16 +14,15 @@ import {
 import { getGameReviews } from "../controllers/reviewController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import authorizeRoles from "../middleware/roleMiddleware.js";
+import { gameImageStorage } from "../config/cloudinary.js";
 
 const router = express.Router();
 
-const ensureDir = (dir) => fs.mkdirSync(dir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (_req, file, cb) => {
-    const folder = file.fieldname === "gameFile" ? "files" : "images";
-    const uploadDir = path.join(process.cwd(), "uploads", "games", folder);
-    ensureDir(uploadDir);
+// Use Cloudinary storage for images; fall back to disk for game files
+const diskStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const uploadDir = path.join(process.cwd(), "uploads", "games", "files");
+    fs.mkdirSync(uploadDir, { recursive: true });
     cb(null, uploadDir);
   },
   filename: (_req, file, cb) => {
@@ -35,29 +34,32 @@ const storage = multer.diskStorage({
   },
 });
 
-const fileFilter = (_req, file, cb) => {
-  const imageFields = ["coverImage", "image", "screenshots"];
-  if (imageFields.includes(file.fieldname) && !file.mimetype.startsWith("image/")) {
-    return cb(new Error("Only image files are allowed for cover images and screenshots"));
-  }
-  return cb(null, true);
-};
+const imageFields = ["coverImage", "image", "screenshots"];
 
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: {
-    fileSize: 1024 * 1024 * 250,
-    files: 10,
-  },
+const dynamicStorage = multer.diskStorage({});
+
+// Separate multer instances: Cloudinary for images, disk for game files
+const uploadImages = multer({
+  storage: gameImageStorage,
+  limits: { fileSize: 1024 * 1024 * 10, files: 8 },
 });
 
-const uploadFields = upload.fields([
-  { name: "coverImage", maxCount: 1 },
-  { name: "image", maxCount: 1 },
-  { name: "screenshots", maxCount: 6 },
-  { name: "gameFile", maxCount: 1 },
-]);
+const uploadGameFile = multer({
+  storage: diskStorage,
+  limits: { fileSize: 1024 * 1024 * 250, files: 1 },
+});
+
+// Combined middleware: images → Cloudinary, gameFile → disk
+const uploadFields = (req, res, next) => {
+  uploadImages.fields([
+    { name: "coverImage", maxCount: 1 },
+    { name: "image", maxCount: 1 },
+    { name: "screenshots", maxCount: 6 },
+  ])(req, res, (err) => {
+    if (err) return next(err);
+    uploadGameFile.fields([{ name: "gameFile", maxCount: 1 }])(req, res, next);
+  });
+};
 
 const createGameValidation = [
   body("title").trim().notEmpty().withMessage("Game title is required"),
