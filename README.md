@@ -2,7 +2,7 @@
 
 A full-stack game store web application where customers can browse and purchase games, developers can publish and manage their titles, and admins can oversee the entire platform.
 
-**Live Demo:** [web-project-one-lyart.vercel.app](https://web-project-one-lyart.vercel.app)  
+**Live Demo:** [gamevault-store.vercel.app](https://gamevault-store.vercel.app)  
 **Backend API:** [web-project-eskq.onrender.com](https://web-project-eskq.onrender.com)
 
 ---\
